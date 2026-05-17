@@ -1,0 +1,21 @@
+# Node
+node_modules
+npm-debug.log
+yarn.lock
+pnpm-lock.yaml
+
+# Vite / builds
+dist
+.vite
+
+# Env files
+.env
+backend/.env
+frontend/.env
+
+# Logs
+*.log
+
+# IDE
+.vscode
+.idea

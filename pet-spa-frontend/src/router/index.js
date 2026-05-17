@@ -1,0 +1,102 @@
+// src/router/index.js
+// REEMPLAZO. Añade rutas y guard de mustChangePassword endurecido.
+import { createRouter, createWebHistory } from 'vue-router';
+import { useAuthStore } from '@/store/authStore';
+import { ROLES, hasRole } from '@/utils/roles';
+
+import LoginView from '@/views/Auth/LoginView.vue';
+import RegisterClientView from '@/views/Auth/RegisterClientView.vue';
+import ChangePasswordView from '@/views/Auth/ChangePasswordView.vue';
+import ActivateAccountView from '@/views/Auth/ActivateAccountView.vue';
+import TwoFAVerifyView from '@/views/Auth/TwoFAVerifyView.vue';
+
+import EmployeesView from '@/views/Admin/EmployeesView.vue';
+import AdminSecurityView from '@/views/Admin/AdminSecurityView.vue';
+import AuditLogView from '@/views/Admin/AuditLogView.vue';
+
+import HomeView from '@/views/HomeView.vue';
+
+const routes = [
+  // Públicas
+  { path: '/login',     name: 'login',     component: LoginView,           meta: { public: true } },
+  { path: '/register',  name: 'register',  component: RegisterClientView,  meta: { public: true } },
+  { path: '/activate',  name: 'activate',  component: ActivateAccountView, meta: { public: true } },
+  { path: '/2fa-verify',name: '2fa-verify',component: TwoFAVerifyView,     meta: { public: true, requires2FA: true } },
+
+  // Sesión iniciada
+  { path: '/',                 name: 'home',            component: HomeView,           meta: { requiresAuth: true } },
+  { path: '/change-password',  name: 'change-password', component: ChangePasswordView, meta: { requiresAuth: true } },
+
+  // Admin / Jefe
+  {
+    path: '/admin/empleados',
+    name: 'admin-empleados',
+    component: EmployeesView,
+    meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.JEFE] },
+  },
+  {
+    path: '/admin/auditoria',
+    name: 'admin-auditoria',
+    component: AuditLogView,
+    meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.JEFE] },
+  },
+
+  // Admin (2FA propio)
+  {
+    path: '/admin/seguridad',
+    name: 'admin-seguridad',
+    component: AdminSecurityView,
+    meta: { requiresAuth: true, roles: [ROLES.ADMIN] },
+  },
+
+  { path: '/:pathMatch(.*)*', redirect: '/' },
+];
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes,
+});
+
+// =================== Guards ===================
+router.beforeEach((to) => {
+  const auth = useAuthStore();
+
+  // 1. Si la ruta es /2fa-verify, requiere tener un token pendiente.
+  if (to.meta.requires2FA) {
+    if (!auth.isPending2FA) return { name: 'login' };
+    return true;
+  }
+
+  // 2. Si NO hay token y la ruta requiere auth -> /login
+  if (to.meta.requiresAuth && !auth.isAuthenticated) {
+    return { name: 'login', query: { redirect: to.fullPath } };
+  }
+
+  // 3. Si está autenticado y debe cambiar password, encerrar en /change-password.
+  //    Permitido salir solo a /login (logout) o quedarse en change-password.
+  if (
+    auth.isAuthenticated &&
+    auth.mustChangePassword &&
+    to.name !== 'change-password' &&
+    to.name !== 'login'
+  ) {
+    return { name: 'change-password' };
+  }
+
+  // 4. Roles
+  if (to.meta.roles && to.meta.roles.length > 0) {
+    if (!hasRole(auth.role, to.meta.roles)) {
+      return { name: 'home' };
+    }
+  }
+
+  // 5. Si está logueado y va a una pública (login/register/activate), mandar al home.
+  //    Excepción: /activate sí debe abrirse incluso logueado para procesar el token.
+  if (to.meta.public && auth.isAuthenticated && to.name !== 'activate') {
+    return { name: 'home' };
+  }
+
+  return true;
+});
+
+export default router;

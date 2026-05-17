@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 280" fill="none">
+  <circle cx="160" cy="140" r="130" fill="#d6f3f7"/>
+  <!-- Escudo -->
+  <path d="M 160 50 L 230 80 L 230 150 Q 230 210 160 240 Q 90 210 90 150 L 90 80 Z"
+        fill="#2bb6c4" stroke="#1e8a96" stroke-width="3"/>
+  <!-- Candado -->
+  <rect x="130" y="130" width="60" height="50" rx="8" fill="#fff"/>
+  <path d="M 140 130 L 140 115 Q 140 100 160 100 Q 180 100 180 115 L 180 130"
+        stroke="#fff" stroke-width="6" fill="none"/>
+  <circle cx="160" cy="155" r="6" fill="#2bb6c4"/>
+  <rect x="158" y="155" width="4" height="14" fill="#2bb6c4"/>
+
+  <!-- Huellitas -->
+  <g fill="#ff8359" opacity="0.85">
+    <circle cx="60" cy="60" r="3"/>
+    <circle cx="66" cy="54" r="2.5"/>
+    <circle cx="72" cy="60" r="2.5"/>
+    <circle cx="66" cy="66" r="2.5"/>
+    <ellipse cx="66" cy="72" rx="6" ry="4"/>
+  </g>
+  <g fill="#ffd166">
+    <circle cx="260" cy="220" r="4"/>
+    <circle cx="50"  cy="220" r="3"/>
+    <circle cx="270" cy="80"  r="3"/>
+  </g>
+</svg>

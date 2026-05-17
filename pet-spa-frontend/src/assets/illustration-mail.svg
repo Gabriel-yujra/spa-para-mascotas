@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 280" fill="none">
+  <circle cx="160" cy="140" r="130" fill="#ffe9d6"/>
+
+  <!-- Sobre -->
+  <g transform="translate(80, 90)">
+    <rect x="0" y="0" width="160" height="110" rx="14" fill="#ffffff" stroke="#ff8359" stroke-width="3"/>
+    <path d="M 0 0 L 80 70 L 160 0" stroke="#ff8359" stroke-width="3" fill="none" stroke-linejoin="round"/>
+    <!-- Sello de huellita -->
+    <g transform="translate(108, 70)" fill="#2bb6c4">
+      <circle cx="-10" cy="-6" r="3"/>
+      <circle cx="-3"  cy="-12" r="2.5"/>
+      <circle cx="4"   cy="-12" r="2.5"/>
+      <circle cx="11"  cy="-6"  r="3"/>
+      <ellipse cx="0" cy="0" rx="9" ry="6"/>
+    </g>
+  </g>
+
+  <!-- Estrellas alrededor -->
+  <g fill="#ffd166">
+    <path d="M 50 60 l 4 8 l 8 1 l -6 5 l 2 8 l -8 -4 l -8 4 l 2 -8 l -6 -5 l 8 -1 z"/>
+    <path d="M 270 50 l 3 6 l 6 1 l -4 4 l 1 6 l -6 -3 l -6 3 l 1 -6 l -4 -4 l 6 -1 z"/>
+    <path d="M 260 220 l 4 8 l 8 1 l -6 5 l 2 8 l -8 -4 l -8 4 l 2 -8 l -6 -5 l 8 -1 z"/>
+  </g>
+</svg>

@@ -1,0 +1,136 @@
+/* src/styles/global.css
+ * Estilos globales y tokens de diseño "cartoon" para Pet Spa.
+ * Importado desde main.js. NO usa Tailwind/Bootstrap.
+ */
+
+/* --------- Paleta y tokens --------- */
+:root {
+  /* Fondo */
+  --color-bg:           #fef6e4;
+  --color-bg-soft:      #fffaf0;
+
+  /* Tarjetas */
+  --color-card:         #ffffff;
+  --color-card-border:  #f1e6d0;
+
+  /* Acentos */
+  --color-primary:      #2bb6c4;   /* turquesa botones principales */
+  --color-primary-dark: #1e8a96;
+  --color-primary-soft: #d6f3f7;
+
+  --color-accent:       #ff8359;   /* coral CTA secundarios / estados */
+  --color-accent-dark:  #e66942;
+
+  --color-pink:         #ffb5c5;
+  --color-yellow:       #ffd166;
+  --color-mint:         #a8e6cf;
+
+  /* Texto */
+  --color-text:         #2b2d42;
+  --color-text-soft:    #6b7280;
+
+  /* Estados */
+  --color-success:      #10b981;
+  --color-warning:      #f59e0b;
+  --color-danger:       #ef4444;
+
+  /* Sombra y radio */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --shadow-sm: 0 2px 6px rgba(43, 45, 66, 0.06);
+  --shadow-md: 0 8px 24px rgba(43, 45, 66, 0.10);
+  --shadow-lg: 0 16px 40px rgba(43, 45, 66, 0.12);
+
+  /* Tipografía */
+  --font-base: 'Nunito', 'Quicksand', system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* --------- Reset suave --------- */
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #app { margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-base);
+  background: var(--color-bg);
+  color: var(--color-text);
+  min-height: 100vh;
+  /* Patrón sutil de "huellitas" usando radial-gradient */
+  background-image:
+    radial-gradient(circle at 10% 20%, rgba(43, 182, 196, 0.05) 0, transparent 22%),
+    radial-gradient(circle at 90% 80%, rgba(255, 131, 89, 0.05) 0, transparent 22%);
+}
+
+a { color: var(--color-primary-dark); text-decoration: none; font-weight: 600; }
+a:hover { text-decoration: underline; }
+
+/* --------- Inputs --------- */
+input, select, textarea {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  border: 2px solid var(--color-card-border);
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: #fff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-soft);
+}
+label {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--color-text-soft);
+  margin-bottom: 0.3rem;
+  font-weight: 600;
+}
+.field { margin-bottom: 0.95rem; }
+
+/* --------- Mensajes --------- */
+.error  { color: var(--color-danger);  font-size: 0.85rem; margin-top: 0.3rem; }
+.warn   { color: var(--color-warning); font-size: 0.85rem; margin-top: 0.3rem; }
+.success { color: var(--color-success); font-size: 0.9rem;  margin-top: 0.3rem; }
+.muted  { color: var(--color-text-soft); font-size: 0.85rem; }
+
+/* --------- Tablas --------- */
+table { width: 100%; border-collapse: collapse; }
+th, td {
+  padding: 0.7rem 0.85rem;
+  text-align: left;
+  border-bottom: 1px solid var(--color-card-border);
+  font-size: 0.9rem;
+}
+th { background: var(--color-bg-soft); font-weight: 700; color: var(--color-text-soft); }
+tr:hover td { background: rgba(43, 182, 196, 0.04); }
+
+/* --------- Badges --------- */
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+}
+.badge-success { background: #d1fae5; color: #065f46; }
+.badge-warning { background: #fef3c7; color: #92400e; }
+.badge-danger  { background: #fee2e2; color: #991b1b; }
+.badge-muted   { background: #e5e7eb; color: #374151; }
+
+/* --------- Layout helpers --------- */
+.container-narrow { max-width: 480px; margin: 0 auto; }
+.container-wide   { max-width: 1100px; margin: 0 auto; }
+.row-gap-1 > * + * { margin-top: 0.5rem; }
+.row-gap-2 > * + * { margin-top: 1rem; }
+.flex-row { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+
+/* --------- Animación de entrada --------- */
+@keyframes pop-in {
+  0%   { opacity: 0; transform: translateY(8px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.pop-in { animation: pop-in 0.25s ease-out; }
