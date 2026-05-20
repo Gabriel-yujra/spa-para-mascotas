@@ -27,11 +27,13 @@ const authRoutes = require('./src/routes/authRoutes');
 const employeeRoutes = require('./src/routes/employeeRoutes');
 const usersRoutes = require('./src/routes/usersRoutes');
 const auditRoutes = require('./src/routes/auditRoutes'); // NUEVO
+const agendaRoutes = require('./src/routes/agendaRoutes');
 
 authRoutes(app);
 employeeRoutes(app);
 usersRoutes(app);
 auditRoutes(app); // NUEVO
+agendaRoutes(app); // NUEVO
 
 // Healthcheck simple
 app.get('/api/health', (_req, res) => {
