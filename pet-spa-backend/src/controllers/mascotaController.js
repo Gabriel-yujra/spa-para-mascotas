@@ -48,6 +48,19 @@ exports.updateMascota = async (req, res, next) => {
 };
 
 // ──────────────────────────────────────────────
+// GET /api/mascotas/:id
+// Rol: STAFF (ADMIN, RECEPCION, JEFE, GROOMER, EMPLEADO)
+// ──────────────────────────────────────────────
+exports.getMascotaByIdForStaff = async (req, res, next) => {
+  try {
+    const mascota = await mascotaService.getMascotaById(req.params.id);
+    return res.status(200).json({ mascota });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ──────────────────────────────────────────────
 // DELETE /api/mascotas/:id
 // Rol: CLIENTE
 // Devuelve 409 si la mascota tiene citas activas.

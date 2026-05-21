@@ -1,6 +1,6 @@
 <script setup>
 import { useAuthStore } from '@/store/authStore';
-import { ROLES, isAdminLike, roleLabel } from '@/utils/roles';
+import { ROLES, isAdminLike, roleLabel, hasRole } from '@/utils/roles';
 import AppCard from '@/components/AppCard.vue';
 import petsArt from '@/assets/illustration-pets-spa.svg';
 
@@ -53,6 +53,19 @@ const auth = useAuthStore();
       >
         <ul class="quick">
           <li><router-link to="/change-password">🔐 Cambiar mi contraseña</router-link></li>
+        </ul>
+      </AppCard>
+
+      <!-- Recepción / Admin / Jefe -->
+      <AppCard
+        v-if="auth.role === ROLES.RECEPCION || isAdminLike(auth.role)"
+        title="Recepción"
+        subtitle="Gestión diaria del spa"
+        variant="soft"
+      >
+        <ul class="quick">
+          <li><router-link to="/recepcion/citas">📅 Bandeja de citas</router-link></li>
+          <li><router-link to="/recepcion/clientes">👤 Clientes</router-link></li>
         </ul>
       </AppCard>
 

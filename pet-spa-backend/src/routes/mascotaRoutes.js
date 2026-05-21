@@ -10,6 +10,8 @@ const requireRole = require('../middlewares/requireRole');
 const mustNotForcePasswordChange = require('../middlewares/mustNotForcePasswordChange');
 const { ROLES } = require('../utils/rolesUtils');
 
+const STAFF_MASCOTA = [ROLES.ADMIN, ROLES.JEFE, ROLES.RECEPCION, ROLES.EMPLEADO, ROLES.GROOMER];
+
 module.exports = (app) => {
   // IMPORTANTE: registrar '/api/mascotas/mias' ANTES de '/api/mascotas/:id'
   // para que el segmento "mias" no caiga en el parámetro dinámico.
@@ -43,5 +45,15 @@ module.exports = (app) => {
     mustNotForcePasswordChange,
     requireRole([ROLES.CLIENTE]),
     mascotaController.deleteMascota
+  );
+
+  // ── Staff: view any pet by ID ─────────────────────────────
+  // Registered after all client routes so '/mias' is never captured by ':id'.
+  app.get(
+    '/api/mascotas/:id',
+    authRequired,
+    mustNotForcePasswordChange,
+    requireRole(STAFF_MASCOTA),
+    mascotaController.getMascotaByIdForStaff
   );
 };

@@ -2,6 +2,7 @@
 // Lógica de negocio para el módulo de clientes.
 // Orquesta clienteModel; no importa Express.
 const clienteModel = require('../models/clienteModel');
+const mascotaModel = require('../models/mascotaModel');
 
 class ServiceError extends Error {
   constructor(status, message) { super(message); this.status = status; }
@@ -41,14 +42,16 @@ async function buscarClientes(filtros = {}) {
 }
 
 /**
- * Detalle de un cliente por id_cliente.
+ * Detalle de un cliente por id_cliente, incluyendo sus mascotas activas.
  * Usado por staff (recepción/admin) para ver la ficha completa.
  * Lanza 404 si no existe.
+ * Devuelve { cliente, mascotas }.
  */
 async function getDetalleCliente(idCliente) {
   const cliente = await clienteModel.findClienteById(idCliente);
   if (!cliente) throw new ServiceError(404, 'Cliente no encontrado');
-  return cliente;
+  const mascotas = await mascotaModel.findMascotasByCliente(idCliente);
+  return { cliente, mascotas };
 }
 
 module.exports = {

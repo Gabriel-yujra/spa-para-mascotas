@@ -14,8 +14,10 @@ async function listGroomersActivos() {
             u.nombre AS nombre_usuario
        FROM trabajadores t
        JOIN usuarios u ON u.id_usuario = t.id_usuario
+       JOIN roles    r ON r.id_rol     = u.id_rol
       WHERE t.activo = TRUE
         AND u.estado = 'activo'
+        AND r.name   = 'groomer'
       ORDER BY u.nombre ASC`
   );
   return rows;

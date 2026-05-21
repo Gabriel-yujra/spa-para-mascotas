@@ -116,6 +116,68 @@ async function listCitasPendientes({ from = null, to = null, id_servicio = null 
 }
 
 /**
+ * Bandeja general para recepción/admin.
+ * Por defecto excluye estados terminales; acepta filtros opcionales:
+ *   fecha (YYYY-MM-DD), estado (único valor), id_trabajador (UUID del groomer).
+ */
+async function listCitasRecepcion({ fecha = null, estado = null, id_trabajador = null } = {}) {
+  const where = [];
+  const params = [];
+  let i = 1;
+
+  if (fecha) {
+    where.push(`c.fecha_cita = $${i++}`);
+    params.push(fecha);
+  }
+
+  if (estado) {
+    where.push(`c.estado_global = $${i++}`);
+    params.push(estado);
+  } else {
+    where.push(`c.estado_global NOT IN ('cancelada', 'completada', 'no_asistio')`);
+  }
+
+  if (id_trabajador) {
+    where.push(
+      `EXISTS (SELECT 1 FROM cita_trabajadores ct_f
+                WHERE ct_f.id_cita = c.id_cita
+                  AND ct_f.id_trabajador = $${i++})`
+    );
+    params.push(id_trabajador);
+  }
+
+  const whereSql = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
+
+  const { rows } = await db.query(
+    `SELECT c.id_cita, c.id_cliente, c.id_mascota, c.id_servicio,
+            c.fecha_cita, c.estado_global, c.fecha_creacion,
+            c.motivo_cancelacion,
+            m.nombre AS mascota_nombre, m.tamano AS mascota_tamano,
+            s.nombre AS servicio_nombre, s.duracion_estimada_min,
+            u.nombre AS cliente_nombre, u.email AS cliente_email,
+            (SELECT MIN(ct.fecha_inicio)
+               FROM cita_trabajadores ct
+              WHERE ct.id_cita = c.id_cita) AS hora_inicio,
+            (SELECT ug.nombre
+               FROM cita_trabajadores ct2
+               JOIN trabajadores trab ON trab.id_trabajador = ct2.id_trabajador
+               JOIN usuarios     ug   ON ug.id_usuario      = trab.id_usuario
+              WHERE ct2.id_cita = c.id_cita
+              ORDER BY ct2.fecha_inicio ASC
+              LIMIT 1) AS groomer_nombre
+       FROM citas c
+       LEFT JOIN mascotas  m   ON m.id_mascota   = c.id_mascota
+       LEFT JOIN servicios s   ON s.id_servicio  = c.id_servicio
+       LEFT JOIN clientes  cli ON cli.id_cliente = c.id_cliente
+       LEFT JOIN usuarios  u   ON u.id_usuario   = cli.id_usuario
+      ${whereSql}
+      ORDER BY c.fecha_cita ASC, hora_inicio ASC NULLS LAST`,
+    params
+  );
+  return rows;
+}
+
+/**
  * Listado para el groomer: solo las citas a las que está asignado.
  * Filtra por id_trabajador y opcionalmente fecha.
  */
@@ -131,6 +193,10 @@ async function listCitasByTrabajador(id_trabajador, { fecha = null } = {}) {
             c.id_cita, c.id_cliente, c.id_mascota, c.id_servicio,
             c.fecha_cita, c.estado_empleado, c.estado_global,
             m.nombre AS mascota_nombre, m.tamano AS mascota_tamano,
+            m.alergias AS mascota_alergias,
+            m.restricciones AS mascota_restricciones,
+            m.temperamento AS mascota_temperamento,
+            m.notas AS mascota_notas,
             s.nombre AS servicio_nombre, s.duracion_estimada_min,
             u.nombre AS cliente_nombre,
             ct.fecha_inicio, ct.fecha_fin
@@ -209,6 +275,7 @@ module.exports = {
   findCitaById,
   listCitasByUsuarioCliente,
   listCitasPendientes,
+  listCitasRecepcion,
   listCitasByTrabajador,
   updateCitaCampos,
   updateFechaCita,

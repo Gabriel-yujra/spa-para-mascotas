@@ -6,6 +6,7 @@ const db = require('../config/db');
 const trabajadorModel = require('../models/trabajadorModel');
 const citaModel = require('../models/citaModel');
 const groomingFichaModel = require('../models/groomingFichaModel');
+const mascotaModel = require('../models/mascotaModel');
 const { ESTADOS, canTransition, TIPO_MOVIMIENTO } = require('../utils/citaEstados');
 
 class ServiceError extends Error {
@@ -78,6 +79,10 @@ async function getAgendaDelGroomer(idUsuario, fecha) {
         hora_inicio: cita.fecha_inicio,
         mascota_nombre: cita.mascota_nombre,
         mascota_tamano: cita.mascota_tamano,
+        mascota_alergias: cita.mascota_alergias,
+        mascota_restricciones: cita.mascota_restricciones,
+        mascota_temperamento: cita.mascota_temperamento,
+        mascota_notas: cita.mascota_notas,
         cliente_nombre: cita.cliente_nombre,
         servicio_nombre: cita.servicio_nombre,
         duracion_estimada_min: cita.duracion_estimada_min,
@@ -100,12 +105,17 @@ async function getOrCreateFichaForCita(idUsuario, idCita) {
   const trabajador = await resolverTrabajador(idUsuario);
   await assertCitaDelGroomer(idCita, trabajador.id_trabajador);
 
-  const existing = await groomingFichaModel.getFichaByCitaId(idCita);
-  if (existing) return existing;
+  const [cita, existing] = await Promise.all([
+    citaModel.findCitaById(idCita),
+    groomingFichaModel.getFichaByCitaId(idCita),
+  ]);
 
-  // Create with all-null defaults — no transaction needed (single table write)
-  const ficha = await groomingFichaModel.createFichaForCita(idCita, {});
-  return ficha;
+  const mascota = cita?.id_mascota
+    ? await mascotaModel.findMascotaById(cita.id_mascota)
+    : null;
+
+  const ficha = existing || await groomingFichaModel.createFichaForCita(idCita, {});
+  return { ficha, mascota };
 }
 
 /**

@@ -49,8 +49,8 @@ exports.buscarClientes = async (req, res, next) => {
 // ──────────────────────────────────────────────
 exports.getDetalleCliente = async (req, res, next) => {
   try {
-    const cliente = await clienteService.getDetalleCliente(req.params.idCliente);
-    return res.status(200).json({ cliente });
+    const { cliente, mascotas } = await clienteService.getDetalleCliente(req.params.idCliente);
+    return res.status(200).json({ cliente, mascotas });
   } catch (err) {
     next(err);
   }

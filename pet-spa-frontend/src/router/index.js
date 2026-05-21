@@ -20,6 +20,10 @@ import MisMascotasView  from '@/views/Cliente/MisMascotasView.vue';
 import MisCitasView     from '@/views/Cliente/MisCitasView.vue';
 import SolicitarCitaView from '@/views/Cliente/SolicitarCitaView.vue';
 
+import RecepcionCitasView          from '@/views/Recepcion/RecepcionCitasView.vue';
+import RecepcionClientesView       from '@/views/Recepcion/RecepcionClientesView.vue';
+import RecepcionClienteDetalleView from '@/views/Recepcion/RecepcionClienteDetalleView.vue';
+
 const routes = [
   // Públicas
   { path: '/login',     name: 'login',     component: LoginView,           meta: { public: true } },
@@ -71,6 +75,26 @@ const routes = [
     name: 'admin-seguridad',
     component: AdminSecurityView,
     meta: { requiresAuth: true, roles: [ROLES.ADMIN] },
+  },
+
+  // Recepción / Admin / Jefe
+  {
+    path: '/recepcion/citas',
+    name: 'recepcion-citas',
+    component: RecepcionCitasView,
+    meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.JEFE, ROLES.RECEPCION] },
+  },
+  {
+    path: '/recepcion/clientes',
+    name: 'recepcion-clientes',
+    component: RecepcionClientesView,
+    meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.JEFE, ROLES.RECEPCION] },
+  },
+  {
+    path: '/recepcion/clientes/:id',
+    name: 'recepcion-cliente-detalle',
+    component: RecepcionClienteDetalleView,
+    meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.JEFE, ROLES.RECEPCION] },
   },
 
   { path: '/:pathMatch(.*)*', redirect: '/' },

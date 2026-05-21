@@ -32,7 +32,17 @@ function logout() {
           <router-link v-if="auth.role === ROLES.CLIENTE" to="/solicitar-cita">Solicitar cita</router-link>
           <router-link v-if="auth.role === ROLES.CLIENTE" to="/mis-citas">Mis citas</router-link>
 
-          <!-- Staff -->
+          <!-- Recepción / Admin / Jefe -->
+          <router-link
+            v-if="auth.role === ROLES.RECEPCION || isAdminLike(auth.role)"
+            to="/recepcion/citas"
+          >Citas</router-link>
+          <router-link
+            v-if="auth.role === ROLES.RECEPCION || isAdminLike(auth.role)"
+            to="/recepcion/clientes"
+          >Clientes</router-link>
+
+          <!-- Admin / Jefe -->
           <router-link v-if="isAdminLike(auth.role)" to="/admin/empleados">Empleados</router-link>
           <router-link v-if="isAdminLike(auth.role)" to="/admin/auditoria">Auditoría</router-link>
           <router-link v-if="auth.role === ROLES.ADMIN" to="/admin/seguridad">Seguridad</router-link>

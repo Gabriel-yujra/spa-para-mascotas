@@ -23,11 +23,11 @@ exports.getAgendaDelDia = async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────────────
 exports.getFicha = async (req, res, next) => {
   try {
-    const ficha = await groomingService.getOrCreateFichaForCita(
+    const { ficha, mascota } = await groomingService.getOrCreateFichaForCita(
       req.user.id_usuario,
       req.params.idCita
     );
-    return res.status(200).json({ ficha });
+    return res.status(200).json({ ficha, mascota });
   } catch (err) {
     if (err.status) return res.status(err.status).json({ error: err.message });
     next(err);
