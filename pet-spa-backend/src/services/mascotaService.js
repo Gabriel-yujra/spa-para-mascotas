@@ -79,8 +79,20 @@ async function deleteMascotaForUsuario(idUsuario, idMascota) {
   await mascotaModel.softDeleteMascota(idMascota);
 }
 
+/**
+ * Lookup any pet by PK — for staff (ADMIN, RECEPCION, GROOMER, etc.).
+ * No ownership check; the route layer enforces the role.
+ * Throws 404 if the mascota doesn't exist.
+ */
+async function getMascotaById(idMascota) {
+  const mascota = await mascotaModel.findMascotaById(idMascota);
+  if (!mascota) throw new ServiceError(404, 'Mascota no encontrada');
+  return mascota;
+}
+
 module.exports = {
   getMascotasByUsuario,
+  getMascotaById,
   createMascotaForUsuario,
   updateMascotaForUsuario,
   deleteMascotaForUsuario,

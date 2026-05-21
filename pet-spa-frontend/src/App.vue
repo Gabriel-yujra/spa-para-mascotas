@@ -27,6 +27,25 @@ function logout() {
         </template>
 
         <template v-else>
+          <!-- Cliente -->
+          <router-link v-if="auth.role === ROLES.CLIENTE" to="/mis-mascotas">Mis mascotas</router-link>
+          <router-link v-if="auth.role === ROLES.CLIENTE" to="/solicitar-cita">Solicitar cita</router-link>
+          <router-link v-if="auth.role === ROLES.CLIENTE" to="/mis-citas">Mis citas</router-link>
+
+          <!-- Groomer -->
+          <router-link v-if="auth.role === ROLES.GROOMER" to="/groomer/agenda">Mi agenda</router-link>
+
+          <!-- Recepción / Admin / Jefe -->
+          <router-link
+            v-if="auth.role === ROLES.RECEPCION || isAdminLike(auth.role)"
+            to="/recepcion/citas"
+          >Citas</router-link>
+          <router-link
+            v-if="auth.role === ROLES.RECEPCION || isAdminLike(auth.role)"
+            to="/recepcion/clientes"
+          >Clientes</router-link>
+
+          <!-- Admin / Jefe -->
           <router-link v-if="isAdminLike(auth.role)" to="/admin/empleados">Empleados</router-link>
           <router-link v-if="isAdminLike(auth.role)" to="/admin/auditoria">Auditoría</router-link>
           <router-link v-if="auth.role === ROLES.ADMIN" to="/admin/seguridad">Seguridad</router-link>

@@ -163,6 +163,27 @@ exports.cancelarComoCliente = async (req, res) => {
 };
 
 // ============================================================
+// GET /api/citas/recepcion    (recepción/admin/jefe)
+// Query: fecha, estado, groomerId
+// ============================================================
+exports.listarBandeja = async (req, res) => {
+  const { fecha, estado, groomerId } = req.query;
+  if (fecha && !isValidYMD(fecha)) return res.status(400).json({ error: 'fecha inválida (YYYY-MM-DD)' });
+  if (groomerId && !isUuid(groomerId)) return res.status(400).json({ error: 'groomerId inválido' });
+
+  try {
+    const citas = await citaModel.listCitasRecepcion({
+      fecha:        fecha || null,
+      estado:       estado || null,
+      id_trabajador: groomerId || null,
+    });
+    return res.status(200).json({ count: citas.length, citas });
+  } catch (err) {
+    return handleError(res, err, 'Error al listar bandeja');
+  }
+};
+
+// ============================================================
 // GET /api/citas/pendientes    (recepción/admin/jefe)
 // ============================================================
 exports.listarPendientes = async (req, res) => {

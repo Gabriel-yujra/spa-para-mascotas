@@ -2,25 +2,29 @@
 // Solo SQL. Consultas sobre la tabla `mascotas`.
 // Jamás importa Express. Recibe parámetros de negocio, devuelve datos.
 //
-// Columnas asumidas en `mascotas`:
+// Columnas reales en `mascotas` (ver BD/tablas.txt + migraciones aplicadas):
 //   id_mascota uuid PK
 //   id_cliente uuid FK → clientes
-//   nombre text
-//   especie text          -- p.ej. 'perro', 'gato'
+//   nombre text NOT NULL
 //   raza text
 //   tamano text           -- 'pequeno' | 'mediano' | 'grande' | 'gigante'
+//   peso_kg numeric(5,2)
 //   fecha_nacimiento date
 //   temperamento text
 //   notas text
+//   alergias text
+//   restricciones text
 //   foto_url text
-//   activo boolean DEFAULT true
+//   especie text          -- añadido en 2026-05-mascotas-especie.sql
+//   activo boolean        -- añadido en 2026-05-grooming-changes.sql
 const db = require('../config/db');
 
 // Columnas devueltas en listados y detalles de mascota.
 const CAMPOS_MASCOTA = `
   m.id_mascota, m.id_cliente,
-  m.nombre, m.especie, m.raza, m.tamano,
-  m.fecha_nacimiento, m.temperamento, m.notas, m.foto_url, m.activo
+  m.nombre, m.especie, m.raza, m.tamano, m.peso_kg,
+  m.fecha_nacimiento, m.temperamento,
+  m.notas, m.alergias, m.restricciones, m.foto_url, m.activo
 `;
 
 /**
@@ -73,17 +77,21 @@ async function findMascotaById(id_mascota) {
  */
 async function createMascota(
   { id_cliente, nombre, especie = null, raza = null, tamano = null,
-    fecha_nacimiento = null, temperamento = null, notas = null, foto_url = null },
+    peso_kg = null, fecha_nacimiento = null, temperamento = null,
+    notas = null, alergias = null, restricciones = null, foto_url = null },
   client = db
 ) {
   const { rows } = await client.query(
     `INSERT INTO mascotas
-       (id_cliente, nombre, especie, raza, tamano,
-        fecha_nacimiento, temperamento, notas, foto_url, activo)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true)
-     RETURNING ${CAMPOS_MASCOTA}`,
-    [id_cliente, nombre, especie, raza, tamano,
-     fecha_nacimiento, temperamento, notas, foto_url]
+       (id_cliente, nombre, especie, raza, tamano, peso_kg,
+        fecha_nacimiento, temperamento, notas, alergias, restricciones, foto_url, activo)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true)
+     RETURNING id_mascota, id_cliente,
+               nombre, especie, raza, tamano, peso_kg,
+               fecha_nacimiento, temperamento,
+               notas, alergias, restricciones, foto_url, activo`,
+    [id_cliente, nombre, especie, raza, tamano, peso_kg,
+     fecha_nacimiento, temperamento, notas, alergias, restricciones, foto_url]
   );
   return rows[0];
 }
@@ -93,8 +101,9 @@ async function createMascota(
  * Solo modifica las claves que se pasen en `fields`.
  */
 async function updateMascota(id_mascota, fields, client = db) {
-  const allowed = ['nombre', 'especie', 'raza', 'tamano',
-                   'fecha_nacimiento', 'temperamento', 'notas', 'foto_url'];
+  const allowed = ['nombre', 'especie', 'raza', 'tamano', 'peso_kg',
+                   'fecha_nacimiento', 'temperamento',
+                   'notas', 'alergias', 'restricciones', 'foto_url'];
   const sets = [];
   const values = [];
   let idx = 1;

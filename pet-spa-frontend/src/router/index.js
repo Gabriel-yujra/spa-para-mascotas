@@ -16,6 +16,20 @@ import AuditLogView from '@/views/Admin/AuditLogView.vue';
 
 import HomeView from '@/views/HomeView.vue';
 
+import MisMascotasView  from '@/views/Cliente/MisMascotasView.vue';
+import MisCitasView     from '@/views/Cliente/MisCitasView.vue';
+import SolicitarCitaView from '@/views/Cliente/SolicitarCitaView.vue';
+
+import RecepcionCitasView          from '@/views/Recepcion/RecepcionCitasView.vue';
+import RecepcionClientesView       from '@/views/Recepcion/RecepcionClientesView.vue';
+import RecepcionClienteDetalleView from '@/views/Recepcion/RecepcionClienteDetalleView.vue';
+
+import GroomerAgendaView from '@/views/Groomer/GroomerAgendaView.vue';
+import GroomerFichaView  from '@/views/Groomer/GroomerFichaView.vue';
+
+import RecepcionFichaGroomingView from '@/views/Recepcion/RecepcionFichaGroomingView.vue';
+import ClienteFichaGroomingView   from '@/views/Cliente/ClienteFichaGroomingView.vue';
+
 const routes = [
   // Públicas
   { path: '/login',     name: 'login',     component: LoginView,           meta: { public: true } },
@@ -26,6 +40,32 @@ const routes = [
   // Sesión iniciada
   { path: '/',                 name: 'home',            component: HomeView,           meta: { requiresAuth: true } },
   { path: '/change-password',  name: 'change-password', component: ChangePasswordView, meta: { requiresAuth: true } },
+
+  // Cliente
+  {
+    path: '/mis-citas/:idCita/ficha',
+    name: 'cliente-ficha-grooming',
+    component: ClienteFichaGroomingView,
+    meta: { requiresAuth: true, roles: [ROLES.CLIENTE] },
+  },
+  {
+    path: '/mis-mascotas',
+    name: 'mis-mascotas',
+    component: MisMascotasView,
+    meta: { requiresAuth: true, roles: [ROLES.CLIENTE] },
+  },
+  {
+    path: '/mis-citas',
+    name: 'mis-citas',
+    component: MisCitasView,
+    meta: { requiresAuth: true, roles: [ROLES.CLIENTE] },
+  },
+  {
+    path: '/solicitar-cita',
+    name: 'solicitar-cita',
+    component: SolicitarCitaView,
+    meta: { requiresAuth: true, roles: [ROLES.CLIENTE] },
+  },
 
   // Admin / Jefe
   {
@@ -47,6 +87,48 @@ const routes = [
     name: 'admin-seguridad',
     component: AdminSecurityView,
     meta: { requiresAuth: true, roles: [ROLES.ADMIN] },
+  },
+
+  // Recepción / Admin / Jefe
+  {
+    path: '/recepcion/citas',
+    name: 'recepcion-citas',
+    component: RecepcionCitasView,
+    meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.JEFE, ROLES.RECEPCION] },
+  },
+  {
+    path: '/recepcion/clientes',
+    name: 'recepcion-clientes',
+    component: RecepcionClientesView,
+    meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.JEFE, ROLES.RECEPCION] },
+  },
+  {
+    path: '/recepcion/clientes/:id',
+    name: 'recepcion-cliente-detalle',
+    component: RecepcionClienteDetalleView,
+    meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.JEFE, ROLES.RECEPCION] },
+  },
+
+  // Recepción: ficha de grooming (solo lectura)
+  {
+    path: '/recepcion/citas/:idCita/ficha',
+    name: 'recepcion-ficha-grooming',
+    component: RecepcionFichaGroomingView,
+    meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.JEFE, ROLES.RECEPCION] },
+  },
+
+  // Groomer
+  {
+    path: '/groomer/agenda',
+    name: 'groomer-agenda',
+    component: GroomerAgendaView,
+    meta: { requiresAuth: true, roles: [ROLES.GROOMER] },
+  },
+  {
+    path: '/groomer/citas/:idCita/ficha',
+    name: 'groomer-ficha',
+    component: GroomerFichaView,
+    meta: { requiresAuth: true, roles: [ROLES.GROOMER] },
   },
 
   { path: '/:pathMatch(.*)*', redirect: '/' },

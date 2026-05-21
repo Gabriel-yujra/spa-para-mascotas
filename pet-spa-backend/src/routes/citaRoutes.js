@@ -56,6 +56,17 @@ module.exports = (app) => {
   // ============================================================
   // RECEPCIÓN / ADMIN / JEFE
   // ============================================================
+
+  // Bandeja general: todos los estados activos, filtrable por fecha/estado/groomerId
+  app.get(
+    '/api/citas/recepcion',
+    authRequired,
+    mustNotForcePasswordChange,
+    requireRole(STAFF_RECEPCION),
+    citaController.listarBandeja
+  );
+
+  // Bandeja rápida: solo pendientes (legacy, se mantiene por compatibilidad)
   app.get(
     '/api/citas/pendientes',
     authRequired,
