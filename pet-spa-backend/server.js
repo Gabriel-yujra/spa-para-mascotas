@@ -26,16 +26,22 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 const authRoutes = require('./src/routes/authRoutes');
 const employeeRoutes = require('./src/routes/employeeRoutes');
 const usersRoutes = require('./src/routes/usersRoutes');
-const auditRoutes = require('./src/routes/auditRoutes'); // NUEVO
+const auditRoutes = require('./src/routes/auditRoutes');
 const agendaRoutes = require('./src/routes/agendaRoutes');
 const citaRoutes = require('./src/routes/citaRoutes');
+const clienteRoutes = require('./src/routes/clienteRoutes');
+const mascotaRoutes = require('./src/routes/mascotaRoutes');
+const groomingRoutes = require('./src/routes/groomingRoutes');
 
 authRoutes(app);
 employeeRoutes(app);
 usersRoutes(app);
-auditRoutes(app); // NUEVO
-agendaRoutes(app); // NUEVO
-citaRoutes(app); // NUEVO
+auditRoutes(app);
+agendaRoutes(app);
+citaRoutes(app);
+clienteRoutes(app);
+mascotaRoutes(app);
+groomingRoutes(app);
 
 // Healthcheck simple
 app.get('/api/health', (_req, res) => {

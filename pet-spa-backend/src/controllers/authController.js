@@ -13,7 +13,7 @@ const crypto = require('crypto');
 
 const db = require('../config/db');
 const userModel = require('../models/userModel');
-const clientModel = require('../models/clientModel');
+const clienteModel = require('../models/clienteModel');
 const rolesModel = require('../models/rolesModel');
 const auditLogModel = require('../models/auditLogModel');
 const activationTokenModel = require('../models/activationTokenModel');
@@ -92,7 +92,7 @@ exports.register = async (req, res) => {
       { id_rol: clienteRole.id_rol, nombre, email, password_hash, debe_cambiar_password: false, estado: 'pendiente' },
       dbClient
     );
-    await clientModel.createClient(
+    await clienteModel.createCliente(
       { id_usuario: newUser.id_usuario, telefono, direccion, ci, canal_notificacion: canal_notificacion || null, horarios_preferidos: horarios_preferidos || null },
       dbClient
     );
