@@ -1,8 +1,8 @@
 // src/routes/groomingRoutes.js
-// Endpoints for the grooming module.
-//
 // Role policy:
-//   GROOMER: all routes (owns their own agenda and fichas)
+//   GROOMER     → agenda + ficha CRUD (own citas only)
+//   RECEPCION / ADMIN / JEFE → read-only ficha for any cita
+//   CLIENTE     → summary ficha for own completed citas
 
 const groomingController = require('../controllers/groomingController');
 const authRequired = require('../middlewares/authRequired');
@@ -11,6 +11,7 @@ const mustNotForcePasswordChange = require('../middlewares/mustNotForcePasswordC
 const { ROLES } = require('../utils/rolesUtils');
 
 module.exports = function groomingRoutes(app) {
+  // ── Groomer: agenda ──────────────────────────────────────────────────────
   app.get(
     '/api/grooming/agenda',
     authRequired,
@@ -19,7 +20,27 @@ module.exports = function groomingRoutes(app) {
     groomingController.getAgendaDelDia
   );
 
-  // IMPORTANT: register '/api/grooming/fichas/:idCita' after static segments
+  // ── IMPORTANT: static-segment routes before :idCita param routes ─────────
+
+  // Cliente: summary ficha for own completed cita
+  app.get(
+    '/api/grooming/mis-citas/:idCita/ficha',
+    authRequired,
+    requireRole([ROLES.CLIENTE]),
+    groomingController.getFichaCliente
+  );
+
+  // Staff: full read-only ficha — must be registered before the groomer route
+  // so Express sees /fichas/:idCita/admin before /fichas/:idCita
+  app.get(
+    '/api/grooming/fichas/:idCita/admin',
+    authRequired,
+    mustNotForcePasswordChange,
+    requireRole([ROLES.RECEPCION, ROLES.ADMIN, ROLES.JEFE]),
+    groomingController.getFichaAdmin
+  );
+
+  // Groomer: full editable ficha
   app.get(
     '/api/grooming/fichas/:idCita',
     authRequired,

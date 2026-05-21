@@ -1,9 +1,11 @@
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { citaApi } from '@/api/citaApi';
 import AppCard       from '@/components/AppCard.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 
+const router     = useRouter();
 const citas      = ref([]);
 const loading    = ref(false);
 const errorMsg   = ref('');
@@ -167,7 +169,7 @@ onMounted(loadCitas);
                   {{ estadoLabel(c.estado_global) }}
                 </span>
               </td>
-              <td>
+              <td class="actions-cell">
                 <button
                   v-if="isCancelable(c)"
                   class="link-btn danger"
@@ -175,7 +177,14 @@ onMounted(loadCitas);
                 >
                   Cancelar
                 </button>
-                <span v-else class="muted">—</span>
+                <button
+                  v-if="c.estado_global === 'completada'"
+                  class="link-btn"
+                  @click="router.push({ name: 'cliente-ficha-grooming', params: { idCita: c.id_cita } })"
+                >
+                  Ver ficha
+                </button>
+                <span v-if="!isCancelable(c) && c.estado_global !== 'completada'" class="muted">—</span>
               </td>
             </tr>
           </tbody>
@@ -209,6 +218,7 @@ onMounted(loadCitas);
 .state { padding: 2.5rem; text-align: center; color: var(--color-text-soft); }
 .table-wrapper { overflow-x: auto; }
 
+.actions-cell { display: flex; gap: 0.35rem; flex-wrap: wrap; }
 .link-btn {
   background: none;
   border: 1px solid var(--color-card-border);
@@ -218,6 +228,7 @@ onMounted(loadCitas);
   font-size: 0.78rem;
   cursor: pointer;
   font-family: inherit;
+  white-space: nowrap;
 }
 .link-btn:hover { background: var(--color-bg-soft); }
 .link-btn.danger { border-color: var(--color-danger); color: var(--color-danger); }

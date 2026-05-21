@@ -3,11 +3,12 @@
 // All database-mutating operations use transactions when touching more than one table.
 const db = require('../config/db');
 
-const trabajadorModel = require('../models/trabajadorModel');
-const citaModel = require('../models/citaModel');
-const groomingFichaModel = require('../models/groomingFichaModel');
-const mascotaModel = require('../models/mascotaModel');
-const { ESTADOS, canTransition, TIPO_MOVIMIENTO } = require('../utils/citaEstados');
+const trabajadorModel      = require('../models/trabajadorModel');
+const citaModel            = require('../models/citaModel');
+const groomingFichaModel   = require('../models/groomingFichaModel');
+const groomingChecklistModel = require('../models/groomingChecklistModel');
+const mascotaModel         = require('../models/mascotaModel');
+const { ESTADOS, canTransition } = require('../utils/citaEstados');
 
 class ServiceError extends Error {
   constructor(status, message) { super(message); this.status = status; }
@@ -15,10 +16,6 @@ class ServiceError extends Error {
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
-/**
- * Resolve id_usuario → trabajador row.
- * Throws 404 if no active trabajador record exists for this user.
- */
 async function resolverTrabajador(idUsuario) {
   const trabajador = await trabajadorModel.findTrabajadorByUsuario(idUsuario);
   if (!trabajador) {
@@ -27,10 +24,6 @@ async function resolverTrabajador(idUsuario) {
   return trabajador;
 }
 
-/**
- * Verify that the cita is assigned to the given groomer.
- * Throws 403 if not assigned, 404 if the cita does not exist at all.
- */
 async function assertCitaDelGroomer(idCita, idTrabajador) {
   const { rows } = await db.query(
     `SELECT ct.id_cita_trabajador
@@ -42,7 +35,6 @@ async function assertCitaDelGroomer(idCita, idTrabajador) {
     [idCita, idTrabajador]
   );
   if (rows.length === 0) {
-    // Distinguish between "cita not found" and "not your cita"
     const { rows: exists } = await db.query(
       `SELECT id_cita FROM citas WHERE id_cita = $1 LIMIT 1`,
       [idCita]
@@ -52,13 +44,28 @@ async function assertCitaDelGroomer(idCita, idTrabajador) {
   }
 }
 
+/**
+ * Merges allItems with existing checklist rows so the caller always gets
+ * one entry per item (realizado defaults to false when not yet saved).
+ */
+function mergeChecklist(allItems, savedRows) {
+  return allItems.map((item) => {
+    const saved = savedRows.find((r) => r.id_item === item.id_item);
+    return {
+      id_item:     item.id_item,
+      nombre:      item.nombre,
+      realizado:   saved?.realizado  ?? false,
+      observacion: saved?.observacion ?? null,
+    };
+  });
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
- * GET /api/grooming/agenda?fecha=YYYY-MM-DD&limit=10&page=1
- *
- * Without fecha → returns all non-cancelled citas for this groomer (paginated).
- * With fecha    → returns only citas for that specific day (same as before).
+ * GET /api/grooming/agenda
+ * Without fecha → all non-cancelled citas for this groomer (paginated).
+ * With fecha    → only that day.
  */
 async function getAgendaDelGroomer(idUsuario, { fecha, limit = 10, offset = 0 } = {}) {
   const trabajador = await resolverTrabajador(idUsuario);
@@ -68,25 +75,24 @@ async function getAgendaDelGroomer(idUsuario, { fecha, limit = 10, offset = 0 } 
     { fecha, limit, offset }
   );
 
-  // Annotate each cita with whether a ficha exists (useful for UI badge)
   const agenda = await Promise.all(
     citas.map(async (cita) => {
       const ficha = await groomingFichaModel.getFichaByCitaId(cita.id_cita);
       return {
-        id_cita: cita.id_cita,
-        fecha_cita: cita.fecha_cita,
-        hora_inicio: cita.fecha_inicio,
-        mascota_nombre: cita.mascota_nombre,
-        mascota_tamano: cita.mascota_tamano,
-        mascota_alergias: cita.mascota_alergias,
+        id_cita:               cita.id_cita,
+        fecha_cita:            cita.fecha_cita,
+        hora_inicio:           cita.fecha_inicio,
+        mascota_nombre:        cita.mascota_nombre,
+        mascota_tamano:        cita.mascota_tamano,
+        mascota_alergias:      cita.mascota_alergias,
         mascota_restricciones: cita.mascota_restricciones,
-        mascota_temperamento: cita.mascota_temperamento,
-        mascota_notas: cita.mascota_notas,
-        cliente_nombre: cita.cliente_nombre,
-        servicio_nombre: cita.servicio_nombre,
+        mascota_temperamento:  cita.mascota_temperamento,
+        mascota_notas:         cita.mascota_notas,
+        cliente_nombre:        cita.cliente_nombre,
+        servicio_nombre:       cita.servicio_nombre,
         duracion_estimada_min: cita.duracion_estimada_min,
-        estado_global: cita.estado_global,
-        tiene_ficha: ficha !== null,
+        estado_global:         cita.estado_global,
+        tiene_ficha:           ficha !== null,
       };
     })
   );
@@ -95,10 +101,8 @@ async function getAgendaDelGroomer(idUsuario, { fecha, limit = 10, offset = 0 } 
 }
 
 /**
- * GET /api/grooming/fichas/:idCita
- *
- * Returns the ficha for the cita, creating it with default values if it doesn't exist yet.
- * Validates that the cita belongs to the requesting groomer.
+ * GET /api/grooming/fichas/:idCita  (GROOMER)
+ * Returns ficha (creating it if absent), full checklist, fotos, and cita state.
  */
 async function getOrCreateFichaForCita(idUsuario, idCita) {
   const trabajador = await resolverTrabajador(idUsuario);
@@ -114,20 +118,36 @@ async function getOrCreateFichaForCita(idUsuario, idCita) {
     : null;
 
   const ficha = existing || await groomingFichaModel.createFichaForCita(idCita, {});
-  return { ficha, mascota };
+
+  const [savedChecklist, allItems, fotos] = await Promise.all([
+    groomingChecklistModel.getChecklistByFichaId(ficha.id_ficha),
+    groomingChecklistModel.getAllItems(),
+    groomingFichaModel.getFotosByFichaId(ficha.id_ficha),
+  ]);
+
+  return {
+    ficha,
+    mascota,
+    checklist: mergeChecklist(allItems, savedChecklist),
+    fotos,
+    cita: cita ? {
+      id_cita:       cita.id_cita,
+      estado_global: cita.estado_global,
+      fecha_cita:    cita.fecha_cita,
+      servicio_nombre: cita.servicio_nombre,
+    } : null,
+  };
 }
 
 /**
- * PUT /api/grooming/fichas/:idCita
+ * PUT /api/grooming/fichas/:idCita  (GROOMER)
+ * Updates ficha fields + optional checklist + optional state transition.
  *
- * Updates ficha fields. Optionally transitions estado_global on the cita
- * (e.g. confirmada → en_progreso, en_progreso → completada) within the same
- * DB transaction.
- *
- * Accepted body fields:
- *   Ficha: estado_ingreso, observaciones, tamano_mascota, temperatura,
- *          notas_internas, fecha_cierre, consumido_inventario
- *   Cita state: nuevo_estado_global  (optional)
+ * Body fields:
+ *   Ficha: estado_ingreso, observaciones, recomendaciones, tamano_mascota,
+ *          temperatura, notas_internas, fecha_cierre, consumido_inventario
+ *   Checklist: checklist ([{ id_item, realizado, observacion }])
+ *   Cita state: nuevo_estado_global (optional)
  */
 async function updateFichaFromGroomer(idUsuario, idCita, data) {
   const trabajador = await resolverTrabajador(idUsuario);
@@ -135,8 +155,10 @@ async function updateFichaFromGroomer(idUsuario, idCita, data) {
 
   const {
     nuevo_estado_global,
+    checklist,
     estado_ingreso,
     observaciones,
+    recomendaciones,
     tamano_mascota,
     temperatura,
     notas_internas,
@@ -145,29 +167,34 @@ async function updateFichaFromGroomer(idUsuario, idCita, data) {
   } = data || {};
 
   const fichaFields = {
-    ...(estado_ingreso        !== undefined && { estado_ingreso }),
-    ...(observaciones         !== undefined && { observaciones }),
-    ...(tamano_mascota        !== undefined && { tamano_mascota }),
-    ...(temperatura           !== undefined && { temperatura }),
-    ...(notas_internas        !== undefined && { notas_internas }),
-    ...(fecha_cierre          !== undefined && { fecha_cierre }),
-    ...(consumido_inventario  !== undefined && { consumido_inventario }),
+    ...(estado_ingreso       !== undefined && { estado_ingreso }),
+    ...(observaciones        !== undefined && { observaciones }),
+    ...(recomendaciones      !== undefined && { recomendaciones }),
+    ...(tamano_mascota       !== undefined && { tamano_mascota }),
+    ...(temperatura          !== undefined && { temperatura }),
+    ...(notas_internas       !== undefined && { notas_internas }),
+    ...(fecha_cierre         !== undefined && { fecha_cierre }),
+    ...(consumido_inventario !== undefined && { consumido_inventario }),
   };
 
   const needsStateTransition = nuevo_estado_global !== undefined;
+  const hasChecklist = Array.isArray(checklist) && checklist.length > 0;
 
   if (!needsStateTransition) {
-    // No state change → simple ficha update, no transaction required
+    // No state change → simple update, no transaction required
     let ficha = await groomingFichaModel.getFichaByCitaId(idCita);
     if (!ficha) {
       ficha = await groomingFichaModel.createFichaForCita(idCita, fichaFields);
     } else if (Object.keys(fichaFields).length > 0) {
       ficha = await groomingFichaModel.updateFicha(ficha.id_ficha, fichaFields);
     }
+    if (hasChecklist && ficha) {
+      await groomingChecklistModel.upsertChecklistItems(ficha.id_ficha, checklist);
+    }
     return { ficha };
   }
 
-  // State change requested → validate transition, then run in a transaction
+  // State change requested → validate, then run in a transaction
   const cita = await citaModel.findCitaById(idCita);
   if (!cita) throw new ServiceError(404, 'Cita no encontrada');
 
@@ -178,7 +205,6 @@ async function updateFichaFromGroomer(idUsuario, idCita, data) {
     );
   }
 
-  // Auto-set fecha_cierre when completing
   if (nuevo_estado_global === ESTADOS.COMPLETADA && !fichaFields.fecha_cierre) {
     fichaFields.fecha_cierre = new Date().toISOString();
   }
@@ -200,6 +226,10 @@ async function updateFichaFromGroomer(idUsuario, idCita, data) {
       ficha = await groomingFichaModel.updateFicha(ficha.id_ficha, fichaFields, client);
     }
 
+    if (hasChecklist && ficha) {
+      await groomingChecklistModel.upsertChecklistItems(ficha.id_ficha, checklist, client);
+    }
+
     await client.query('COMMIT');
     return { ficha, cita: citaActualizada };
   } catch (err) {
@@ -210,8 +240,114 @@ async function updateFichaFromGroomer(idUsuario, idCita, data) {
   }
 }
 
+/**
+ * GET /api/grooming/fichas/:idCita/admin  (RECEPCION / ADMIN / JEFE)
+ * Full read-only view of the ficha. No ownership check — any staff can view.
+ */
+async function getFichaForAdmin(idCita) {
+  const cita = await citaModel.findCitaById(idCita);
+  if (!cita) throw new ServiceError(404, 'Cita no encontrada');
+
+  const mascota = cita.id_mascota
+    ? await mascotaModel.findMascotaById(cita.id_mascota)
+    : null;
+
+  const ficha = await groomingFichaModel.getFichaByCitaId(idCita);
+
+  if (!ficha) {
+    return {
+      ficha: null,
+      mascota,
+      checklist: [],
+      fotos: [],
+      cita: {
+        id_cita:         cita.id_cita,
+        estado_global:   cita.estado_global,
+        fecha_cita:      cita.fecha_cita,
+        servicio_nombre: cita.servicio_nombre,
+      },
+    };
+  }
+
+  const [savedChecklist, allItems, fotos] = await Promise.all([
+    groomingChecklistModel.getChecklistByFichaId(ficha.id_ficha),
+    groomingChecklistModel.getAllItems(),
+    groomingFichaModel.getFotosByFichaId(ficha.id_ficha),
+  ]);
+
+  return {
+    ficha,
+    mascota,
+    checklist: mergeChecklist(allItems, savedChecklist),
+    fotos,
+    cita: {
+      id_cita:         cita.id_cita,
+      estado_global:   cita.estado_global,
+      fecha_cita:      cita.fecha_cita,
+      servicio_nombre: cita.servicio_nombre,
+    },
+  };
+}
+
+/**
+ * GET /api/grooming/mis-citas/:idCita/ficha  (CLIENTE)
+ * Summary view — validates cita ownership, strips internal fields.
+ */
+async function getFichaForCliente(idUsuario, idCita) {
+  const cita = await citaModel.findCitaById(idCita);
+  if (!cita) throw new ServiceError(404, 'Cita no encontrada');
+
+  // Validate the cita belongs to the authenticated client
+  if (cita.id_usuario_cliente !== idUsuario) {
+    throw new ServiceError(403, 'Esta cita no pertenece a tu cuenta');
+  }
+
+  // Client can only see ficha for completed citas
+  if (cita.estado_global !== ESTADOS.COMPLETADA) {
+    throw new ServiceError(403, 'La ficha solo está disponible una vez completada la cita');
+  }
+
+  const mascota = cita.id_mascota
+    ? await mascotaModel.findMascotaById(cita.id_mascota)
+    : null;
+
+  const ficha = await groomingFichaModel.getFichaByCitaId(idCita);
+
+  if (!ficha) {
+    return {
+      mascota,
+      servicio_nombre: cita.servicio_nombre,
+      fecha_cita:      cita.fecha_cita,
+      resumen:         null,
+      checklist:       [],
+      fotos:           [],
+    };
+  }
+
+  const [savedChecklist, allItems, fotos] = await Promise.all([
+    groomingChecklistModel.getChecklistByFichaId(ficha.id_ficha),
+    groomingChecklistModel.getAllItems(),
+    groomingFichaModel.getFotosByFichaId(ficha.id_ficha),
+  ]);
+
+  // Strip internal fields: notas_internas, temperatura, estado_ingreso
+  return {
+    mascota,
+    servicio_nombre: cita.servicio_nombre,
+    fecha_cita:      cita.fecha_cita,
+    resumen: {
+      recomendaciones: ficha.recomendaciones,
+      fecha_cierre:    ficha.fecha_cierre,
+    },
+    checklist: mergeChecklist(allItems, savedChecklist),
+    fotos,
+  };
+}
+
 module.exports = {
   getAgendaDelGroomer,
   getOrCreateFichaForCita,
   updateFichaFromGroomer,
+  getFichaForAdmin,
+  getFichaForCliente,
 };

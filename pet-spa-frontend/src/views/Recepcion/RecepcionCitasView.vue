@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { citaApi } from '@/api/citaApi';
 import AppCard       from '@/components/AppCard.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
@@ -16,6 +17,7 @@ const selectedDate    = ref('');
 const selectedEstado  = ref('ALL');   // 'ALL' | specific state
 
 // Pagination
+const router = useRouter();
 const page  = ref(1);
 const limit = ref(10);
 
@@ -385,7 +387,12 @@ onMounted(loadCitas);
                     Cancelar
                   </button>
                 </template>
-                <span v-else class="muted">—</span>
+                <button
+                  class="link-btn"
+                  @click="router.push({ name: 'recepcion-ficha-grooming', params: { idCita: c.id_cita } })"
+                >
+                  Ver ficha
+                </button>
               </td>
             </tr>
           </tbody>

@@ -1,11 +1,11 @@
 // src/models/groomingFichaModel.js
-// SQL-only model for fichas_grooming.
+// SQL-only model for fichas_grooming and fotos_grooming.
 // All write functions accept an optional `client` for transaction participation.
 const db = require('../config/db');
 
 const CAMPOS_FICHA = `
   fg.id_ficha, fg.id_cita,
-  fg.estado_ingreso, fg.observaciones, fg.tamano_mascota,
+  fg.estado_ingreso, fg.observaciones, fg.recomendaciones, fg.tamano_mascota,
   fg.temperatura, fg.notas_internas, fg.consumido_inventario,
   fg.fecha_creacion, fg.fecha_cierre
 `;
@@ -27,35 +27,38 @@ async function getFichaByCitaId(idCita) {
 
 /**
  * Insert a new ficha for the given cita.
- * data: { estado_ingreso, observaciones, tamano_mascota, temperatura, notas_internas }
+ * data: { estado_ingreso, observaciones, recomendaciones, tamano_mascota, temperatura, notas_internas }
  * All data fields are optional; defaults to empty/null.
  */
 async function createFichaForCita(idCita, data = {}, client = db) {
   const {
-    estado_ingreso = null,
-    observaciones = null,
-    tamano_mascota = null,
-    temperatura = null,
-    notas_internas = null,
+    estado_ingreso    = null,
+    observaciones     = null,
+    recomendaciones   = null,
+    tamano_mascota    = null,
+    temperatura       = null,
+    notas_internas    = null,
   } = data;
   const { rows } = await client.query(
     `INSERT INTO fichas_grooming
-       (id_cita, estado_ingreso, observaciones, tamano_mascota, temperatura, notas_internas)
-     VALUES ($1, $2, $3, $4, $5, $6)
-     RETURNING ${CAMPOS_FICHA.replace(/fg\./g, '')}`,
-    [idCita, estado_ingreso, observaciones, tamano_mascota, temperatura, notas_internas]
+       (id_cita, estado_ingreso, observaciones, recomendaciones, tamano_mascota, temperatura, notas_internas)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     RETURNING id_ficha, id_cita, estado_ingreso, observaciones, recomendaciones,
+               tamano_mascota, temperatura, notas_internas, consumido_inventario,
+               fecha_creacion, fecha_cierre`,
+    [idCita, estado_ingreso, observaciones, recomendaciones, tamano_mascota, temperatura, notas_internas]
   );
   return rows[0];
 }
 
 /**
  * Partial update of a ficha. Only updates fields present in `fields`.
- * Allowed fields: estado_ingreso, observaciones, tamano_mascota, temperatura,
- *                 notas_internas, fecha_cierre, consumido_inventario
+ * Allowed fields: estado_ingreso, observaciones, recomendaciones, tamano_mascota,
+ *                 temperatura, notas_internas, fecha_cierre, consumido_inventario
  */
 async function updateFicha(idFicha, fields, client = db) {
   const allowed = [
-    'estado_ingreso', 'observaciones', 'tamano_mascota',
+    'estado_ingreso', 'observaciones', 'recomendaciones', 'tamano_mascota',
     'temperatura', 'notas_internas', 'fecha_cierre', 'consumido_inventario',
   ];
   const sets = [];
@@ -74,16 +77,31 @@ async function updateFicha(idFicha, fields, client = db) {
     `UPDATE fichas_grooming
         SET ${sets.join(', ')}
       WHERE id_ficha = $${idx}
-      RETURNING id_ficha, id_cita, estado_ingreso, observaciones, tamano_mascota,
-                temperatura, notas_internas, consumido_inventario,
+      RETURNING id_ficha, id_cita, estado_ingreso, observaciones, recomendaciones,
+                tamano_mascota, temperatura, notas_internas, consumido_inventario,
                 fecha_creacion, fecha_cierre`,
     values
   );
   return rows[0] || null;
 }
 
+/**
+ * Returns all photos for a ficha, ordered by fecha_registro ASC.
+ */
+async function getFotosByFichaId(idFicha) {
+  const { rows } = await db.query(
+    `SELECT id_foto, id_ficha, tipo, url_foto, fecha_registro
+       FROM fotos_grooming
+      WHERE id_ficha = $1
+      ORDER BY fecha_registro ASC`,
+    [idFicha]
+  );
+  return rows;
+}
+
 module.exports = {
   getFichaByCitaId,
   createFichaForCita,
   updateFicha,
+  getFotosByFichaId,
 };
