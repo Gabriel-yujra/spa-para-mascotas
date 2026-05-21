@@ -11,12 +11,17 @@ const errorMsg   = ref('');
 const successMsg = ref('');
 
 // Filters
-const filterFecha  = ref(todayYMD());
-const filterEstado = ref('');
+const filterModeFecha = ref('all');   // 'all' | 'day'
+const selectedDate    = ref('');
+const selectedEstado  = ref('ALL');   // 'ALL' | specific state
+
+// Pagination
+const page  = ref(1);
+const limit = ref(10);
 
 // Action dialogs
-const confirmId   = ref(null);   // cita being confirmed
-const noShowId    = ref(null);   // cita being marked no-asistio
+const confirmId   = ref(null);
+const noShowId    = ref(null);
 
 const cancelId    = ref(null);
 const cancelMotivo = ref('');
@@ -28,10 +33,6 @@ const reprogHora  = ref('');
 const actionLoading = ref(false);
 
 // ── Helpers ────────────────────────────────────────────────────
-function todayYMD() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 const ESTADO_LABELS = {
   pendiente:    'Pendiente',
   confirmada:   'Confirmada',
@@ -43,7 +44,7 @@ const ESTADO_LABELS = {
 };
 
 const ESTADO_OPTIONS = [
-  { value: '',             label: 'Todos los estados activos' },
+  { value: 'ALL',          label: 'Todos' },
   { value: 'pendiente',    label: 'Pendiente' },
   { value: 'confirmada',   label: 'Confirmada' },
   { value: 'reprogramada', label: 'Reprogramada' },
@@ -105,15 +106,41 @@ async function loadCitas() {
   errorMsg.value = '';
   clearDialogs();
   try {
-    const params = {};
-    if (filterFecha.value)  params.fecha  = filterFecha.value;
-    if (filterEstado.value) params.estado = filterEstado.value;
+    const params = {
+      limit,
+      offset: (page.value - 1) * limit.value,
+    };
+    if (filterModeFecha.value === 'day' && selectedDate.value) {
+      params.fecha = selectedDate.value;
+    }
+    if (selectedEstado.value !== 'ALL') {
+      params.estado = selectedEstado.value;
+    }
     const data = await citaApi.listarCitasRecepcion(params);
     citas.value = data.citas || [];
   } catch (err) {
     errorMsg.value = err.response?.data?.error || 'Error al cargar citas';
   } finally {
     loading.value = false;
+  }
+}
+
+function applyFilters() {
+  page.value = 1;
+  loadCitas();
+}
+
+function prevPage() {
+  if (page.value > 1) {
+    page.value--;
+    loadCitas();
+  }
+}
+
+function nextPage() {
+  if (citas.value.length === limit.value) {
+    page.value++;
+    loadCitas();
   }
 }
 
@@ -195,7 +222,7 @@ onMounted(loadCitas);
   <div class="recepcion-citas-page">
     <header class="page-header">
       <h2>📅 Bandeja de citas</h2>
-      <p class="muted">Vista diaria para recepción y administración</p>
+      <p class="muted">Vista para recepción y administración</p>
     </header>
 
     <!-- ── Filters ─────────────────────────────────────────── -->
@@ -203,18 +230,28 @@ onMounted(loadCitas);
       <div class="filter-row">
         <div class="field">
           <label>Fecha</label>
-          <input type="date" v-model="filterFecha" />
+          <select v-model="filterModeFecha">
+            <option value="all">Todos</option>
+            <option value="day">Por día</option>
+          </select>
         </div>
+
+        <div v-if="filterModeFecha === 'day'" class="field">
+          <label>Día</label>
+          <input type="date" v-model="selectedDate" />
+        </div>
+
         <div class="field">
           <label>Estado</label>
-          <select v-model="filterEstado">
+          <select v-model="selectedEstado">
             <option v-for="opt in ESTADO_OPTIONS" :key="opt.value" :value="opt.value">
               {{ opt.label }}
             </option>
           </select>
         </div>
+
         <div class="filter-btn">
-          <PrimaryButton @click="loadCitas" :loading="loading">Buscar</PrimaryButton>
+          <PrimaryButton @click="applyFilters" :loading="loading">Buscar</PrimaryButton>
         </div>
       </div>
     </AppCard>
@@ -354,6 +391,13 @@ onMounted(loadCitas);
           </tbody>
         </table>
       </div>
+
+      <!-- ── Pagination ──────────────────────────────────────── -->
+      <div class="pagination">
+        <button class="page-btn" @click="prevPage" :disabled="page === 1">← Anterior</button>
+        <span class="page-info">Página {{ page }}</span>
+        <button class="page-btn" @click="nextPage" :disabled="citas.length < limit">Siguiente →</button>
+      </div>
     </AppCard>
   </div>
 </template>
@@ -363,13 +407,13 @@ onMounted(loadCitas);
 .page-header h2 { margin: 0 0 0.25rem 0; }
 
 .filter-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.75rem;
-  align-items: end;
+  align-items: flex-end;
 }
-.filter-row .field { margin-bottom: 0; }
-.filter-btn { padding-bottom: 0.05rem; }
+.filter-row .field { flex: 1; min-width: 130px; margin-bottom: 0; }
+.filter-btn { flex-shrink: 0; padding-bottom: 0.05rem; }
 
 .action-banner {
   display: flex;
@@ -420,8 +464,31 @@ onMounted(loadCitas);
 .link-btn.danger { border-color: var(--color-danger); color: var(--color-danger); }
 .link-btn.danger:hover { background: #fee2e2; }
 
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--color-card-border);
+}
+.page-btn {
+  background: none;
+  border: 1px solid var(--color-card-border);
+  color: var(--color-text-soft);
+  padding: 0.3rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+.page-btn:hover:not(:disabled) { background: var(--color-bg-soft); color: var(--color-text); }
+.page-btn:disabled { opacity: 0.4; cursor: default; }
+.page-info { font-size: 0.85rem; color: var(--color-text-soft); font-weight: 600; }
+
 @media (max-width: 640px) {
-  .filter-row { grid-template-columns: 1fr; }
+  .filter-row { flex-direction: column; }
+  .filter-row .field { min-width: 0; }
   .reprog-fields { grid-template-columns: 1fr; }
 }
 </style>

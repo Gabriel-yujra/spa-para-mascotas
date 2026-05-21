@@ -86,7 +86,10 @@ async function createMascota(
        (id_cliente, nombre, especie, raza, tamano, peso_kg,
         fecha_nacimiento, temperamento, notas, alergias, restricciones, foto_url, activo)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, true)
-     RETURNING ${CAMPOS_MASCOTA}`,
+     RETURNING id_mascota, id_cliente,
+               nombre, especie, raza, tamano, peso_kg,
+               fecha_nacimiento, temperamento,
+               notas, alergias, restricciones, foto_url, activo`,
     [id_cliente, nombre, especie, raza, tamano, peso_kg,
      fecha_nacimiento, temperamento, notas, alergias, restricciones, foto_url]
   );

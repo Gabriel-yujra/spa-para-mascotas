@@ -180,14 +180,23 @@ async function listCitasRecepcion({ fecha = null, estado = null, id_trabajador =
 /**
  * Listado para el groomer: solo las citas a las que está asignado.
  * Filtra por id_trabajador y opcionalmente fecha.
+ * Soporta paginación mediante limit/offset.
  */
-async function listCitasByTrabajador(id_trabajador, { fecha = null } = {}) {
+async function listCitasByTrabajador(
+  id_trabajador,
+  { fecha = null, limit = 10, offset = 0 } = {}
+) {
   const params = [id_trabajador];
-  let extra = '';
+  let dateFilter = '';
   if (fecha) {
     params.push(fecha);
-    extra = ` AND c.fecha_cita = $2`;
+    dateFilter = ` AND c.fecha_cita = $${params.length}`;
   }
+  params.push(limit);
+  const limitIdx = params.length;
+  params.push(offset);
+  const offsetIdx = params.length;
+
   const { rows } = await db.query(
     `SELECT DISTINCT
             c.id_cita, c.id_cliente, c.id_mascota, c.id_servicio,
@@ -206,9 +215,10 @@ async function listCitasByTrabajador(id_trabajador, { fecha = null } = {}) {
        LEFT JOIN servicios s   ON s.id_servicio  = c.id_servicio
        LEFT JOIN clientes  cli ON cli.id_cliente = c.id_cliente
        LEFT JOIN usuarios  u   ON u.id_usuario   = cli.id_usuario
-      WHERE ct.id_trabajador = $1 ${extra}
+      WHERE ct.id_trabajador = $1${dateFilter}
         AND c.estado_global <> 'cancelada'
-      ORDER BY ct.fecha_inicio ASC`,
+      ORDER BY ct.fecha_inicio ASC
+      LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
     params
   );
   return rows;

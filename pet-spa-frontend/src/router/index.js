@@ -24,6 +24,9 @@ import RecepcionCitasView          from '@/views/Recepcion/RecepcionCitasView.vu
 import RecepcionClientesView       from '@/views/Recepcion/RecepcionClientesView.vue';
 import RecepcionClienteDetalleView from '@/views/Recepcion/RecepcionClienteDetalleView.vue';
 
+import GroomerAgendaView from '@/views/Groomer/GroomerAgendaView.vue';
+import GroomerFichaView  from '@/views/Groomer/GroomerFichaView.vue';
+
 const routes = [
   // Públicas
   { path: '/login',     name: 'login',     component: LoginView,           meta: { public: true } },
@@ -95,6 +98,20 @@ const routes = [
     name: 'recepcion-cliente-detalle',
     component: RecepcionClienteDetalleView,
     meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.JEFE, ROLES.RECEPCION] },
+  },
+
+  // Groomer
+  {
+    path: '/groomer/agenda',
+    name: 'groomer-agenda',
+    component: GroomerAgendaView,
+    meta: { requiresAuth: true, roles: [ROLES.GROOMER] },
+  },
+  {
+    path: '/groomer/citas/:idCita/ficha',
+    name: 'groomer-ficha',
+    component: GroomerFichaView,
+    meta: { requiresAuth: true, roles: [ROLES.GROOMER] },
   },
 
   { path: '/:pathMatch(.*)*', redirect: '/' },

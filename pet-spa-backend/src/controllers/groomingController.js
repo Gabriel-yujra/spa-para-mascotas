@@ -4,14 +4,25 @@
 const groomingService = require('../services/groomingService');
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GET /api/grooming/agenda?fecha=YYYY-MM-DD
+// GET /api/grooming/agenda?fecha=YYYY-MM-DD&limit=10&page=1
 // Role: GROOMER
+// fecha is optional; omitting it returns all non-cancelled citas for this groomer.
 // ─────────────────────────────────────────────────────────────────────────────
 exports.getAgendaDelDia = async (req, res, next) => {
   try {
-    const fecha = req.query.fecha || new Date().toISOString().slice(0, 10);
-    const agenda = await groomingService.getAgendaDelGroomer(req.user.id_usuario, fecha);
-    return res.status(200).json({ fecha, agenda });
+    const fecha  = req.query.fecha || undefined;
+    const limit  = Math.max(1, parseInt(req.query.limit, 10) || 10);
+    const page   = Math.max(1, parseInt(req.query.page,  10) || 1);
+    const offset = (page - 1) * limit;
+
+    const agenda = await groomingService.getAgendaDelGroomer(
+      req.user.id_usuario,
+      { fecha, limit, offset }
+    );
+
+    const response = { agenda, page, limit };
+    if (fecha) response.fecha = fecha;
+    return res.status(200).json(response);
   } catch (err) {
     next(err);
   }

@@ -55,18 +55,17 @@ async function assertCitaDelGroomer(idCita, idTrabajador) {
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
- * GET /api/grooming/agenda?fecha=YYYY-MM-DD
+ * GET /api/grooming/agenda?fecha=YYYY-MM-DD&limit=10&page=1
  *
- * Returns all non-cancelled citas assigned to the groomer for the given date.
- * Each item includes: id_cita, mascota_nombre, cliente_nombre, servicio_nombre,
- * fecha_inicio (slot), estado_global, and whether a ficha already exists.
+ * Without fecha → returns all non-cancelled citas for this groomer (paginated).
+ * With fecha    → returns only citas for that specific day (same as before).
  */
-async function getAgendaDelGroomer(idUsuario, fecha) {
+async function getAgendaDelGroomer(idUsuario, { fecha, limit = 10, offset = 0 } = {}) {
   const trabajador = await resolverTrabajador(idUsuario);
 
   const citas = await citaModel.listCitasByTrabajador(
     trabajador.id_trabajador,
-    { fecha }
+    { fecha, limit, offset }
   );
 
   // Annotate each cita with whether a ficha exists (useful for UI badge)

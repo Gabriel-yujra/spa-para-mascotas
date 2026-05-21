@@ -56,6 +56,18 @@ const auth = useAuthStore();
         </ul>
       </AppCard>
 
+      <!-- Groomer -->
+      <AppCard
+        v-if="auth.role === ROLES.GROOMER"
+        title="Mi agenda"
+        subtitle="Citas asignadas y fichas de grooming"
+        variant="soft"
+      >
+        <ul class="quick">
+          <li><router-link to="/groomer/agenda">📅 Ver mi agenda</router-link></li>
+        </ul>
+      </AppCard>
+
       <!-- Recepción / Admin / Jefe -->
       <AppCard
         v-if="auth.role === ROLES.RECEPCION || isAdminLike(auth.role)"
