@@ -1,0 +1,460 @@
+CREATE TABLE public.audit_log (
+    id_log uuid DEFAULT gen_random_uuid() NOT NULL,
+    id_usuario uuid,
+    accion text NOT NULL,
+    detalle text,
+    ip_address text,
+    user_agent text,
+    fecha timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.audit_log OWNER TO postgres;
+
+--
+-- Name: bloqueos_agenda; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.bloqueos_agenda (
+    id_bloqueo uuid DEFAULT gen_random_uuid() NOT NULL,
+    fecha date NOT NULL,
+    motivo text,
+    tipo text NOT NULL,
+    id_trabajador uuid
+);
+
+
+ALTER TABLE public.bloqueos_agenda OWNER TO postgres;
+
+--
+-- Name: cajas; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.cajas (
+    id_caja uuid DEFAULT gen_random_uuid() NOT NULL,
+    nombre text NOT NULL,
+    descripcion text,
+    estado text DEFAULT 'activa'::text NOT NULL,
+    saldo_actual numeric(14,2) DEFAULT 0 NOT NULL
+);
+
+
+ALTER TABLE public.cajas OWNER TO postgres;
+
+--
+-- Name: checklist_items; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.checklist_items (
+    id_item uuid DEFAULT gen_random_uuid() NOT NULL,
+    nombre text NOT NULL,
+    descripcion text
+);
+
+
+ALTER TABLE public.checklist_items OWNER TO postgres;
+
+--
+-- Name: cita_movimientos; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.cita_movimientos (
+    id_movimiento uuid DEFAULT gen_random_uuid() NOT NULL,
+    id_cita uuid NOT NULL,
+    tipo_movimiento text NOT NULL,
+    fecha_anterior date,
+    fecha_nueva date NOT NULL,
+    id_usuario_origen uuid NOT NULL,
+    descripcion text,
+    fecha_registro timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.cita_movimientos OWNER TO postgres;
+
+--
+-- Name: cita_trabajadores; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.cita_trabajadores (
+    id_cita_trabajador uuid DEFAULT gen_random_uuid() NOT NULL,
+    id_cita uuid NOT NULL,
+    id_trabajador uuid NOT NULL,
+    fecha_inicio timestamp with time zone NOT NULL,
+    fecha_fin timestamp with time zone
+);
+
+
+ALTER TABLE public.cita_trabajadores OWNER TO postgres;
+
+--
+-- Name: citas; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.citas (
+    id_cita uuid DEFAULT gen_random_uuid() NOT NULL,
+    id_cliente uuid NOT NULL,
+    id_mascota uuid NOT NULL,
+    id_servicio uuid NOT NULL,
+    fecha_cita date NOT NULL,
+    estado_empleado text DEFAULT 'pendiente'::text NOT NULL,
+    estado_cliente text DEFAULT 'pendiente'::text NOT NULL,
+    estado_global text DEFAULT 'pendiente'::text NOT NULL,
+    motivo_cancelacion text,
+    cancelado_por uuid,
+    terminado_por_empleado uuid,
+    conforme_por_cliente uuid,
+    fecha_creacion timestamp with time zone DEFAULT now() NOT NULL,
+    fecha_ultima_actualizacion timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.citas OWNER TO postgres;
+
+--
+-- Name: clientes; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.clientes (
+    id_cliente uuid DEFAULT gen_random_uuid() NOT NULL,
+    id_usuario uuid NOT NULL,
+    telefono text,
+    direccion text,
+    ci text,
+    canal_notificacion text,
+    horarios_preferidos text
+);
+
+
+ALTER TABLE public.clientes OWNER TO postgres;
+
+--
+-- Name: detalle_pedido_clientes; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.detalle_pedido_clientes (
+    id_detalle uuid DEFAULT gen_random_uuid() NOT NULL,
+    id_pedido uuid NOT NULL,
+    id_producto uuid NOT NULL,
+    cantidad numeric(10,2) NOT NULL,
+    precio_unitario numeric(10,2) NOT NULL
+);
+
+
+ALTER TABLE public.detalle_pedido_clientes OWNER TO postgres;
+
+--
+-- Name: ficha_grooming_checklist; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.ficha_grooming_checklist (
+    id_ficha_item uuid DEFAULT gen_random_uuid() NOT NULL,
+    id_ficha uuid NOT NULL,
+    id_item uuid NOT NULL,
+    realizado boolean DEFAULT false NOT NULL,
+    observacion text
+);
+
+
+ALTER TABLE public.ficha_grooming_checklist OWNER TO postgres;
+
+--
+-- Name: fichas_grooming; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.fichas_grooming (
+    id_ficha uuid DEFAULT gen_random_uuid() NOT NULL,
+    id_cita uuid NOT NULL,
+    estado_ingreso text,
+    observaciones text,
+    tamano_mascota text,
+    fecha_creacion timestamp with time zone DEFAULT now() NOT NULL,
+    fecha_cierre timestamp with time zone,
+    temperatura numeric(5,2),
+    notas_internas text,
+    consumido_inventario boolean DEFAULT false NOT NULL
+);
+
+
+ALTER TABLE public.fichas_grooming OWNER TO postgres;
+
+--
+-- Name: fichas_grooming_insumos; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.fichas_grooming_insumos (
+    id_ficha_insumo uuid DEFAULT gen_random_uuid() NOT NULL,
+    id_ficha uuid NOT NULL,
+    id_producto uuid NOT NULL,
+    unidades_usadas numeric(10,2) NOT NULL
+);
+
+
+ALTER TABLE public.fichas_grooming_insumos OWNER TO postgres;
+
+--
+-- Name: fotos_grooming; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.fotos_grooming (
+    id_foto uuid DEFAULT gen_random_uuid() NOT NULL,
+    id_ficha uuid NOT NULL,
+    tipo text NOT NULL,
+    url_foto text NOT NULL,
+    fecha_registro timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.fotos_grooming OWNER TO postgres;
+
+--
+-- Name: mascota_vacunas; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.mascota_vacunas (
+    id_mascota_vacuna uuid DEFAULT gen_random_uuid() NOT NULL,
+    id_mascota uuid NOT NULL,
+    id_vacuna uuid NOT NULL,
+    fecha_aplicacion date NOT NULL,
+    fecha_proxima date,
+    observaciones text
+);
+
+
+ALTER TABLE public.mascota_vacunas OWNER TO postgres;
+
+--
+-- Name: mascotas; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.mascotas (
+    id_mascota uuid DEFAULT gen_random_uuid() NOT NULL,
+    id_cliente uuid NOT NULL,
+    nombre text NOT NULL,
+    raza text,
+    fecha_nacimiento date,
+    tamano text,
+    peso_kg numeric(5,2),
+    foto_url text,
+    notas text,
+    alergias text,
+    restricciones text,
+    temperamento text
+);
+
+
+ALTER TABLE public.mascotas OWNER TO postgres;
+
+--
+-- Name: opiniones; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.opiniones (
+    id_opinion uuid DEFAULT gen_random_uuid() NOT NULL,
+    id_cita uuid NOT NULL,
+    id_cliente uuid NOT NULL,
+    calificacion smallint NOT NULL,
+    comentario text,
+    fecha_opinion timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.opiniones OWNER TO postgres;
+
+--
+-- Name: pagos_empleados; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.pagos_empleados (
+    id_pago uuid DEFAULT gen_random_uuid() NOT NULL,
+    id_trabajador uuid NOT NULL,
+    monto numeric(14,2) NOT NULL,
+    fecha_pago timestamp with time zone,
+    periodo_desde date NOT NULL,
+    periodo_hasta date NOT NULL,
+    estado text DEFAULT 'pendiente'::text NOT NULL,
+    descripcion text
+);
+
+
+ALTER TABLE public.pagos_empleados OWNER TO postgres;
+
+--
+-- Name: pedidos_clientes; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.pedidos_clientes (
+    id_pedido uuid DEFAULT gen_random_uuid() NOT NULL,
+    id_cliente uuid,
+    fecha_pedido timestamp with time zone DEFAULT now() NOT NULL,
+    total numeric(10,2) DEFAULT 0 NOT NULL,
+    estado text DEFAULT 'pendiente'::text NOT NULL
+);
+
+
+ALTER TABLE public.pedidos_clientes OWNER TO postgres;
+
+--
+-- Name: productos; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.productos (
+    id_producto uuid DEFAULT gen_random_uuid() NOT NULL,
+    nombre text NOT NULL,
+    descripcion text,
+    categoria text NOT NULL,
+    precio numeric(10,2) NOT NULL,
+    stock_unidades numeric(10,2) DEFAULT 0 NOT NULL,
+    estado text DEFAULT 'disponible'::text NOT NULL,
+    unidad_presentacion text,
+    sku text,
+    stock_minimo numeric(10,2) DEFAULT 0 NOT NULL,
+    imagen_url text
+);
+
+
+ALTER TABLE public.productos OWNER TO postgres;
+
+--
+-- Name: roles; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.roles (
+    id_rol uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    description text
+);
+
+
+ALTER TABLE public.roles OWNER TO postgres;
+
+--
+-- Name: servicio_checklist_items; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.servicio_checklist_items (
+    id_servicio_checklist uuid DEFAULT gen_random_uuid() NOT NULL,
+    id_servicio uuid NOT NULL,
+    id_item uuid NOT NULL
+);
+
+
+ALTER TABLE public.servicio_checklist_items OWNER TO postgres;
+
+--
+-- Name: servicios; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.servicios (
+    id_servicio uuid DEFAULT gen_random_uuid() NOT NULL,
+    nombre text NOT NULL,
+    descripcion text,
+    duracion_estimada_min integer NOT NULL,
+    precio numeric(10,2) NOT NULL,
+    unidades_base_insumo numeric(10,2) DEFAULT 1.0 NOT NULL,
+    activo boolean DEFAULT true NOT NULL,
+    permite_doble_booking boolean DEFAULT false NOT NULL,
+    requiere_bloqueo_consecutivo boolean DEFAULT false NOT NULL,
+    factor_tamano_raza jsonb
+);
+
+
+ALTER TABLE public.servicios OWNER TO postgres;
+
+--
+-- Name: trabajadores; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.trabajadores (
+    id_trabajador uuid DEFAULT gen_random_uuid() NOT NULL,
+    id_usuario uuid NOT NULL,
+    sueldo_mensual numeric(10,2) DEFAULT 0 NOT NULL,
+    activo boolean DEFAULT true NOT NULL,
+    especialidad text,
+    capacidad_simultanea integer,
+    turno text,
+    telefono text
+);
+
+
+ALTER TABLE public.trabajadores OWNER TO postgres;
+
+--
+-- Name: transacciones; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.transacciones (
+    id_transaccion uuid DEFAULT gen_random_uuid() NOT NULL,
+    id_caja uuid NOT NULL,
+    tipo text NOT NULL,
+    monto numeric(14,2) NOT NULL,
+    descripcion text,
+    fecha_solicitud timestamp with time zone DEFAULT now() NOT NULL,
+    fecha_aprobacion_admin timestamp with time zone,
+    fecha_aprobacion_jefe timestamp with time zone,
+    estado_admin text DEFAULT 'pendiente'::text NOT NULL,
+    estado_jefe text DEFAULT 'pendiente'::text NOT NULL,
+    estado_global text DEFAULT 'pendiente'::text NOT NULL,
+    id_usuario_solicita uuid NOT NULL,
+    id_usuario_admin uuid,
+    id_usuario_jefe uuid,
+    id_referencia uuid
+);
+
+
+ALTER TABLE public.transacciones OWNER TO postgres;
+
+--
+-- Name: user_activation_tokens; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.user_activation_tokens (
+    id_token uuid DEFAULT gen_random_uuid() NOT NULL,
+    id_usuario uuid NOT NULL,
+    token text NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    used boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.user_activation_tokens OWNER TO postgres;
+
+--
+-- Name: usuarios; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.usuarios (
+    id_usuario uuid DEFAULT gen_random_uuid() NOT NULL,
+    id_rol uuid NOT NULL,
+    nombre text NOT NULL,
+    email text NOT NULL,
+    password_hash text NOT NULL,
+    estado text DEFAULT 'activo'::text NOT NULL,
+    two_factor_enabled boolean DEFAULT false NOT NULL,
+    two_factor_secret text,
+    ultimo_acceso timestamp with time zone,
+    ip_ultimo_acceso text,
+    user_agent text,
+    debe_cambiar_password boolean DEFAULT false NOT NULL,
+    failed_login_attempts integer DEFAULT 0 NOT NULL,
+    lock_until timestamp with time zone,
+    fecha_creacion timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT usuarios_estado_check CHECK ((estado = ANY (ARRAY['pendiente'::text, 'activo'::text, 'inactivo'::text, 'bloqueado'::text])))
+);
+
+
+ALTER TABLE public.usuarios OWNER TO postgres;
+
+--
+-- Name: vacunas; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.vacunas (
+    id_vacuna uuid DEFAULT gen_random_uuid() NOT NULL,
+    nombre text NOT NULL,
+    descripcion text
+);
+
+
+ALTER TABLE public.vacunas OWNER TO postgres;

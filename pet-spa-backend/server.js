@@ -31,6 +31,7 @@ const agendaRoutes = require('./src/routes/agendaRoutes');
 const citaRoutes = require('./src/routes/citaRoutes');
 const clienteRoutes = require('./src/routes/clienteRoutes');
 const mascotaRoutes = require('./src/routes/mascotaRoutes');
+const groomingRoutes = require('./src/routes/groomingRoutes');
 
 authRoutes(app);
 employeeRoutes(app);
@@ -40,6 +41,7 @@ agendaRoutes(app);
 citaRoutes(app);
 clienteRoutes(app);
 mascotaRoutes(app);
+groomingRoutes(app);
 
 // Healthcheck simple
 app.get('/api/health', (_req, res) => {
