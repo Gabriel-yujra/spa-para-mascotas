@@ -21,6 +21,8 @@ const emptyForm = () => ({
   tamano: '',
   fecha_nacimiento: '',
   temperamento: '',
+  alergias: '',
+  restricciones: '',
   notas: '',
 });
 const form = ref(emptyForm());
@@ -60,6 +62,8 @@ function openEdit(m) {
     tamano:          m.tamano || '',
     fecha_nacimiento: m.fecha_nacimiento ? m.fecha_nacimiento.slice(0, 10) : '',
     temperamento:    m.temperamento || '',
+    alergias:        m.alergias || '',
+    restricciones:   m.restricciones || '',
     notas:           m.notas || '',
   };
   successMsg.value = '';
@@ -197,8 +201,26 @@ onMounted(loadMascotas);
             <input v-model="form.temperamento" placeholder="Ej. Tranquilo, activo..." />
           </div>
           <div class="field field--full">
-            <label>Notas</label>
-            <textarea v-model="form.notas" rows="2" placeholder="Alergias, restricciones u otras notas importantes..." />
+            <label>Alergias conocidas</label>
+            <textarea
+              v-model="form.alergias"
+              rows="2"
+              placeholder="Ej. shampoo con parabenos, penicilina, látex..."
+            />
+            <span class="field-hint">Productos o medicamentos que no se pueden usar</span>
+          </div>
+          <div class="field field--full">
+            <label>Restricciones médicas o de comportamiento</label>
+            <textarea
+              v-model="form.restricciones"
+              rows="2"
+              placeholder="Ej. problemas cardíacos, agresivo con extraños, no puede estar de pie mucho tiempo..."
+            />
+            <span class="field-hint">Condiciones de salud o comportamiento que el groomer debe conocer</span>
+          </div>
+          <div class="field field--full">
+            <label>Notas adicionales</label>
+            <textarea v-model="form.notas" rows="2" placeholder="Cualquier otra información relevante..." />
           </div>
         </div>
 
@@ -281,6 +303,7 @@ onMounted(loadMascotas);
   gap: 0.75rem;
 }
 .field--full { grid-column: 1 / -1; }
+.field-hint { font-size: 0.76rem; color: var(--color-text-soft); margin-top: 0.2rem; display: block; }
 
 .form-actions {
   display: flex;
