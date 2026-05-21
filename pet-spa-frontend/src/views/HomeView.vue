@@ -22,6 +22,30 @@ const auth = useAuthStore();
     </section>
 
     <div class="grid">
+      <!-- Cards for cliente role -->
+      <AppCard
+        v-if="auth.role === ROLES.CLIENTE"
+        title="Mis mascotas"
+        subtitle="Registra y gestiona tus mascotas"
+        variant="soft"
+      >
+        <ul class="quick">
+          <li><router-link to="/mis-mascotas">🐶 Ver mis mascotas</router-link></li>
+        </ul>
+      </AppCard>
+
+      <AppCard
+        v-if="auth.role === ROLES.CLIENTE"
+        title="Citas"
+        subtitle="Reserva y consulta tus citas"
+        variant="soft"
+      >
+        <ul class="quick">
+          <li><router-link to="/solicitar-cita">📅 Solicitar nueva cita</router-link></li>
+          <li><router-link to="/mis-citas">📋 Ver mis citas</router-link></li>
+        </ul>
+      </AppCard>
+
       <AppCard
         title="Mi cuenta"
         subtitle="Gestiona tu acceso"

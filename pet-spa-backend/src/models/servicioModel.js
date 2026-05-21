@@ -18,4 +18,14 @@ async function findServicioParaAgenda(id_servicio) {
   return rows[0] || null;
 }
 
-module.exports = { findServicioParaAgenda };
+async function listServicios() {
+  const { rows } = await db.query(
+    `SELECT id_servicio, nombre, descripcion, duracion_estimada_min, precio, activo
+       FROM servicios
+      WHERE activo = true
+      ORDER BY nombre ASC`
+  );
+  return rows;
+}
+
+module.exports = { findServicioParaAgenda, listServicios };

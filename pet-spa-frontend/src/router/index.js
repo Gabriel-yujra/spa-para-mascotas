@@ -16,6 +16,10 @@ import AuditLogView from '@/views/Admin/AuditLogView.vue';
 
 import HomeView from '@/views/HomeView.vue';
 
+import MisMascotasView  from '@/views/Cliente/MisMascotasView.vue';
+import MisCitasView     from '@/views/Cliente/MisCitasView.vue';
+import SolicitarCitaView from '@/views/Cliente/SolicitarCitaView.vue';
+
 const routes = [
   // Públicas
   { path: '/login',     name: 'login',     component: LoginView,           meta: { public: true } },
@@ -26,6 +30,26 @@ const routes = [
   // Sesión iniciada
   { path: '/',                 name: 'home',            component: HomeView,           meta: { requiresAuth: true } },
   { path: '/change-password',  name: 'change-password', component: ChangePasswordView, meta: { requiresAuth: true } },
+
+  // Cliente
+  {
+    path: '/mis-mascotas',
+    name: 'mis-mascotas',
+    component: MisMascotasView,
+    meta: { requiresAuth: true, roles: [ROLES.CLIENTE] },
+  },
+  {
+    path: '/mis-citas',
+    name: 'mis-citas',
+    component: MisCitasView,
+    meta: { requiresAuth: true, roles: [ROLES.CLIENTE] },
+  },
+  {
+    path: '/solicitar-cita',
+    name: 'solicitar-cita',
+    component: SolicitarCitaView,
+    meta: { requiresAuth: true, roles: [ROLES.CLIENTE] },
+  },
 
   // Admin / Jefe
   {
