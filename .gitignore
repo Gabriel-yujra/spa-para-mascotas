@@ -19,3 +19,7 @@ frontend/.env
 # IDE
 .vscode
 .idea
+
+# Claude
+CLAUDE.md
+.claude
