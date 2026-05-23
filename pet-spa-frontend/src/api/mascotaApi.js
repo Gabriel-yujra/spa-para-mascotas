@@ -17,4 +17,12 @@ export const mascotaApi = {
   deleteMascota(id) {
     return http.delete(`/mascotas/${id}`).then((r) => r.data);
   },
+
+  uploadMascotaFoto(id, file) {
+    const fd = new FormData();
+    fd.append('foto', file);
+    return http.post(`/mascotas/${id}/foto`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then((r) => r.data);
+  },
 };
