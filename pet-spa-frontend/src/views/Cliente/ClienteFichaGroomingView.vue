@@ -3,6 +3,16 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { groomingApi } from '@/api/groomingApi';
 import AppCard from '@/components/AppCard.vue';
+import perroDefault from '@/assets/perro-default.svg';
+import gatoDefault  from '@/assets/gato-default.svg';
+
+const BACKEND_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api').replace(/\/api\/?$/, '');
+function mascotaFotoSrc(m) {
+  if (m?.foto_url) return `${BACKEND_URL}${m.foto_url}`;
+  if (m?.especie === 'perro') return perroDefault;
+  if (m?.especie === 'gato')  return gatoDefault;
+  return perroDefault;
+}
 
 const route  = useRoute();
 const router = useRouter();
@@ -78,8 +88,7 @@ onMounted(loadFicha);
       <AppCard title="Tu mascota">
         <div class="pet-summary">
           <div class="pet-avatar">
-            <img v-if="mascota?.foto_url" :src="mascota.foto_url" :alt="mascota.nombre" class="pet-photo" />
-            <div v-else class="pet-avatar-placeholder">🐾</div>
+            <img :src="mascotaFotoSrc(mascota)" :alt="mascota?.nombre" class="pet-photo" />
           </div>
           <div class="pet-info">
             <p class="pet-name">{{ mascota?.nombre || '—' }}</p>
@@ -165,15 +174,7 @@ onMounted(loadFicha);
 
 /* ── Pet summary ── */
 .pet-summary { display: flex; gap: 1rem; align-items: center; }
-.pet-avatar-placeholder {
-  width: 64px; height: 64px;
-  background: var(--color-bg-soft);
-  border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.8rem;
-  flex-shrink: 0;
-}
-.pet-photo { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 2px solid var(--color-card-border); }
+.pet-photo { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; flex-shrink: 0; border: 2px solid var(--color-card-border); background: var(--color-bg-soft); }
 .pet-name   { font-size: 1.05rem; font-weight: 800; margin: 0 0 0.15rem 0; }
 .pet-detail { font-size: 0.88rem; color: var(--color-text-soft); margin: 0; }
 

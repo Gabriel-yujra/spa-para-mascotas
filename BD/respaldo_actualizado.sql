@@ -2,10 +2,12 @@
 -- PostgreSQL database dump
 --
 
-\restrict ABCYeIHM6Vtng1PEgszM67LlGf4ghp8r4gD25uJx06PA9wZOId9qYSNgDbWkeft
+\restrict rQl7HE844h8FUWoWXqaMyBa75wL7zkiaO44weRg2a6Oejuhrklmo3Vxw9RSTB0T
 
 -- Dumped from database version 18.3
 -- Dumped by pg_dump version 18.3
+
+-- Started on 2026-05-23 21:22:07
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -20,6 +22,7 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
+-- TOC entry 2 (class 3079 OID 16389)
 -- Name: pgcrypto; Type: EXTENSION; Schema: -; Owner: -
 --
 
@@ -27,6 +30,8 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
 
 
 --
+-- TOC entry 5265 (class 0 OID 0)
+-- Dependencies: 2
 -- Name: EXTENSION pgcrypto; Type: COMMENT; Schema: -; Owner: 
 --
 
@@ -38,6 +43,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- TOC entry 245 (class 1259 OID 16962)
 -- Name: audit_log; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -55,6 +61,7 @@ CREATE TABLE public.audit_log (
 ALTER TABLE public.audit_log OWNER TO postgres;
 
 --
+-- TOC entry 241 (class 1259 OID 16873)
 -- Name: bloqueos_agenda; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -70,6 +77,7 @@ CREATE TABLE public.bloqueos_agenda (
 ALTER TABLE public.bloqueos_agenda OWNER TO postgres;
 
 --
+-- TOC entry 238 (class 1259 OID 16798)
 -- Name: cajas; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -85,6 +93,7 @@ CREATE TABLE public.cajas (
 ALTER TABLE public.cajas OWNER TO postgres;
 
 --
+-- TOC entry 242 (class 1259 OID 16904)
 -- Name: checklist_items; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -98,6 +107,7 @@ CREATE TABLE public.checklist_items (
 ALTER TABLE public.checklist_items OWNER TO postgres;
 
 --
+-- TOC entry 229 (class 1259 OID 16614)
 -- Name: cita_movimientos; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -116,6 +126,7 @@ CREATE TABLE public.cita_movimientos (
 ALTER TABLE public.cita_movimientos OWNER TO postgres;
 
 --
+-- TOC entry 230 (class 1259 OID 16639)
 -- Name: cita_trabajadores; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -131,6 +142,7 @@ CREATE TABLE public.cita_trabajadores (
 ALTER TABLE public.cita_trabajadores OWNER TO postgres;
 
 --
+-- TOC entry 228 (class 1259 OID 16561)
 -- Name: citas; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -155,6 +167,7 @@ CREATE TABLE public.citas (
 ALTER TABLE public.citas OWNER TO postgres;
 
 --
+-- TOC entry 222 (class 1259 OID 16461)
 -- Name: clientes; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -172,6 +185,7 @@ CREATE TABLE public.clientes (
 ALTER TABLE public.clientes OWNER TO postgres;
 
 --
+-- TOC entry 237 (class 1259 OID 16777)
 -- Name: detalle_pedido_clientes; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -187,6 +201,7 @@ CREATE TABLE public.detalle_pedido_clientes (
 ALTER TABLE public.detalle_pedido_clientes OWNER TO postgres;
 
 --
+-- TOC entry 244 (class 1259 OID 16935)
 -- Name: ficha_grooming_checklist; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -202,6 +217,7 @@ CREATE TABLE public.ficha_grooming_checklist (
 ALTER TABLE public.ficha_grooming_checklist OWNER TO postgres;
 
 --
+-- TOC entry 231 (class 1259 OID 16659)
 -- Name: fichas_grooming; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -215,13 +231,15 @@ CREATE TABLE public.fichas_grooming (
     fecha_cierre timestamp with time zone,
     temperatura numeric(5,2),
     notas_internas text,
-    consumido_inventario boolean DEFAULT false NOT NULL
+    consumido_inventario boolean DEFAULT false NOT NULL,
+    recomendaciones text
 );
 
 
 ALTER TABLE public.fichas_grooming OWNER TO postgres;
 
 --
+-- TOC entry 234 (class 1259 OID 16713)
 -- Name: fichas_grooming_insumos; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -236,6 +254,7 @@ CREATE TABLE public.fichas_grooming_insumos (
 ALTER TABLE public.fichas_grooming_insumos OWNER TO postgres;
 
 --
+-- TOC entry 232 (class 1259 OID 16678)
 -- Name: fotos_grooming; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -251,6 +270,7 @@ CREATE TABLE public.fotos_grooming (
 ALTER TABLE public.fotos_grooming OWNER TO postgres;
 
 --
+-- TOC entry 226 (class 1259 OID 16523)
 -- Name: mascota_vacunas; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -267,6 +287,7 @@ CREATE TABLE public.mascota_vacunas (
 ALTER TABLE public.mascota_vacunas OWNER TO postgres;
 
 --
+-- TOC entry 224 (class 1259 OID 16497)
 -- Name: mascotas; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -282,13 +303,16 @@ CREATE TABLE public.mascotas (
     notas text,
     alergias text,
     restricciones text,
-    temperamento text
+    temperamento text,
+    activo boolean DEFAULT true NOT NULL,
+    especie text
 );
 
 
 ALTER TABLE public.mascotas OWNER TO postgres;
 
 --
+-- TOC entry 235 (class 1259 OID 16733)
 -- Name: opiniones; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -305,6 +329,7 @@ CREATE TABLE public.opiniones (
 ALTER TABLE public.opiniones OWNER TO postgres;
 
 --
+-- TOC entry 240 (class 1259 OID 16853)
 -- Name: pagos_empleados; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -323,6 +348,7 @@ CREATE TABLE public.pagos_empleados (
 ALTER TABLE public.pagos_empleados OWNER TO postgres;
 
 --
+-- TOC entry 236 (class 1259 OID 16757)
 -- Name: pedidos_clientes; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -338,6 +364,7 @@ CREATE TABLE public.pedidos_clientes (
 ALTER TABLE public.pedidos_clientes OWNER TO postgres;
 
 --
+-- TOC entry 233 (class 1259 OID 16697)
 -- Name: productos; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -359,6 +386,7 @@ CREATE TABLE public.productos (
 ALTER TABLE public.productos OWNER TO postgres;
 
 --
+-- TOC entry 220 (class 1259 OID 16427)
 -- Name: roles; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -372,6 +400,7 @@ CREATE TABLE public.roles (
 ALTER TABLE public.roles OWNER TO postgres;
 
 --
+-- TOC entry 243 (class 1259 OID 16914)
 -- Name: servicio_checklist_items; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -385,6 +414,7 @@ CREATE TABLE public.servicio_checklist_items (
 ALTER TABLE public.servicio_checklist_items OWNER TO postgres;
 
 --
+-- TOC entry 227 (class 1259 OID 16545)
 -- Name: servicios; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -405,6 +435,7 @@ CREATE TABLE public.servicios (
 ALTER TABLE public.servicios OWNER TO postgres;
 
 --
+-- TOC entry 223 (class 1259 OID 16478)
 -- Name: trabajadores; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -423,6 +454,7 @@ CREATE TABLE public.trabajadores (
 ALTER TABLE public.trabajadores OWNER TO postgres;
 
 --
+-- TOC entry 239 (class 1259 OID 16812)
 -- Name: transacciones; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -448,6 +480,7 @@ CREATE TABLE public.transacciones (
 ALTER TABLE public.transacciones OWNER TO postgres;
 
 --
+-- TOC entry 246 (class 1259 OID 16983)
 -- Name: user_activation_tokens; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -464,6 +497,7 @@ CREATE TABLE public.user_activation_tokens (
 ALTER TABLE public.user_activation_tokens OWNER TO postgres;
 
 --
+-- TOC entry 221 (class 1259 OID 16439)
 -- Name: usuarios; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -490,6 +524,7 @@ CREATE TABLE public.usuarios (
 ALTER TABLE public.usuarios OWNER TO postgres;
 
 --
+-- TOC entry 225 (class 1259 OID 16513)
 -- Name: vacunas; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -503,6 +538,8 @@ CREATE TABLE public.vacunas (
 ALTER TABLE public.vacunas OWNER TO postgres;
 
 --
+-- TOC entry 5258 (class 0 OID 16962)
+-- Dependencies: 245
 -- Data for Name: audit_log; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -599,10 +636,60 @@ d2da7d58-1940-4ed0-aa55-dbd5ce347c7b	a766670e-bf00-439f-a11d-4356abf872e7	login_
 1eabdf69-a9d7-4814-a258-26ca15e3c7f3	a766670e-bf00-439f-a11d-4356abf872e7	crear_empleado	Empleado creado: adminprueba@petspa.com (rol=admin, estado=activo, debe_cambiar_password=TRUE) por admin@petspa.test	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-14 11:31:17.828018-04
 6a48c8bb-6463-4919-bbb6-aaa0f7fc593b	99c2c44b-8543-4e3d-ad5c-46b4395e0044	login	Login exitoso (rol=admin)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-14 11:31:42.390797-04
 7420db92-57c4-4565-a903-874ccf96e791	99c2c44b-8543-4e3d-ad5c-46b4395e0044	cambio_password	Cambio de contraseña inicial: cuenta activada	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-14 11:32:08.410454-04
+262b995d-c5a1-471b-a08e-fc62ed8d0b7b	a766670e-bf00-439f-a11d-4356abf872e7	login_2fa_pendiente	2FA requerido para completar el login	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 14:51:17.993982-04
+0dd3e6eb-1fa2-4773-93ce-9ae9854cc5bd	a766670e-bf00-439f-a11d-4356abf872e7	login_2fa_ok	Login completado con 2FA	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 14:51:30.535225-04
+f1557438-d6cc-4451-9232-62fd4b84d439	aa1a55f9-6af0-4481-9b77-2aa8cd309e80	login	Login exitoso (rol=cliente)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 14:52:10.124998-04
+69dd3978-1291-45cb-bd0d-f9dac52d9079	aa1a55f9-6af0-4481-9b77-2aa8cd309e80	login	Login exitoso (rol=cliente)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 14:59:21.707019-04
+bc21af8f-b4d1-4e09-a09f-e403e1f05623	aa1a55f9-6af0-4481-9b77-2aa8cd309e80	crear_cita	Cita 423821ca-a8d9-4217-9ed1-184e2579f3aa para 2026-05-22 10:00 (servicio=be42a712-0bbb-441c-b393-669e82067d2e, mascota=b5c438d1-680f-452a-9e20-be9d1289116d)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 15:16:07.129058-04
+845e69b3-aa08-4236-aa1d-7af2ced3d835	aa1a55f9-6af0-4481-9b77-2aa8cd309e80	cancelacion_cliente	Cita 423821ca-a8d9-4217-9ed1-184e2579f3aa cancelada. Motivo: no puedo asistir ese dia	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 15:17:22.934374-04
+23aeea8f-4f6e-441a-8a4e-8914e4b2f79c	aa1a55f9-6af0-4481-9b77-2aa8cd309e80	crear_cita	Cita ddaf5602-4858-45d8-8929-3c75399475bf para 2026-05-21 09:30 (servicio=60c7274f-96cb-44b2-86e7-1364ce799f03, mascota=679cc920-19fb-4a07-81c3-c94c4509a65b)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 15:18:53.661602-04
+e906edb9-56b2-4bb7-bd5d-4b3b5dc6dea3	a766670e-bf00-439f-a11d-4356abf872e7	login_2fa_pendiente	2FA requerido para completar el login	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 15:19:07.888426-04
+68b5bf53-50bf-48f4-ac8c-458021c90acd	a766670e-bf00-439f-a11d-4356abf872e7	login_2fa_ok	Login completado con 2FA	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 15:19:14.494318-04
+cc19d076-f8b7-4ca0-952d-1240059133aa	66572212-2a85-462d-b620-c32df52175a2	login	Login exitoso (rol=recepcion)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 15:20:54.391276-04
+2cfc6a4a-e31a-4be5-a928-9550a35a40d9	a20a7bcf-94ac-4258-8433-a7224d519ba4	login_fallido	Contraseña incorrecta. Intentos: 1	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 15:21:14.130867-04
+16b827d3-785f-4061-a58e-0dfbacd67b7f	4a45b2e2-a474-4154-b2ef-5c4c2a0c8c60	desactivacion_automatica	Empleado no cambió su contraseña inicial dentro del plazo de 7 días	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 15:21:25.550714-04
+eb42a04c-6218-477f-8ee4-e40e07ddfb97	a201fb07-02ca-4b40-ae80-6ca21ce5a907	login_fallido	Cuenta inactiva	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 15:21:44.64464-04
+6875e631-5ad8-4567-87b3-d9dbab0d2b23	914d75bb-85e0-430a-a528-d44486685778	login	Login exitoso (rol=groomer)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 15:21:56.693261-04
+6e84808c-2fff-4bf7-ab2e-8dfcc63e442b	a766670e-bf00-439f-a11d-4356abf872e7	login_2fa_pendiente	2FA requerido para completar el login	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 15:32:29.879622-04
+db89edcb-39d2-43da-9120-97c0e9bb1117	a766670e-bf00-439f-a11d-4356abf872e7	login_2fa_ok	Login completado con 2FA	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 15:32:35.986024-04
+8b38f0b8-4228-424e-975e-2477e8a4c66d	66572212-2a85-462d-b620-c32df52175a2	login	Login exitoso (rol=recepcion)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 15:34:21.736611-04
+facdc013-317a-4052-acff-dfeaf6ab06b5	a766670e-bf00-439f-a11d-4356abf872e7	login_2fa_pendiente	2FA requerido para completar el login	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 15:45:00.745659-04
+37a4c193-1452-44b8-b52b-3261476d5369	a766670e-bf00-439f-a11d-4356abf872e7	login_2fa_ok	Login completado con 2FA	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 15:45:06.953332-04
+40789870-8372-4726-9124-8a638ea40344	914d75bb-85e0-430a-a528-d44486685778	login	Login exitoso (rol=groomer)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 15:45:33.55121-04
+216f3b1c-dbc0-4055-b21f-5a20f5933f1a	66572212-2a85-462d-b620-c32df52175a2	login	Login exitoso (rol=recepcion)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 15:58:20.678439-04
+8bc06a5d-088d-447e-9489-ef7424b9b928	66572212-2a85-462d-b620-c32df52175a2	confirmar_cita	Cita ddaf5602-4858-45d8-8929-3c75399475bf confirmada	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 16:12:28.147659-04
+3d447217-2084-470b-b07a-1dae489a1f02	a766670e-bf00-439f-a11d-4356abf872e7	login_2fa_pendiente	2FA requerido para completar el login	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 16:13:04.478228-04
+494604fa-81a6-47c1-8e6d-90a66b307281	a766670e-bf00-439f-a11d-4356abf872e7	login_2fa_ok	Login completado con 2FA	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 16:13:11.394379-04
+ee833193-ed72-4786-b0d6-fcbd78d5154b	914d75bb-85e0-430a-a528-d44486685778	login	Login exitoso (rol=groomer)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 16:14:34.123294-04
+9b87b3c3-b846-46ae-a01f-080b6eb26aa0	aa1a55f9-6af0-4481-9b77-2aa8cd309e80	login	Login exitoso (rol=cliente)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 16:25:02.942922-04
+0ad602fd-81b1-46e5-a45c-563b58ecc27d	aa1a55f9-6af0-4481-9b77-2aa8cd309e80	crear_cita	Cita 97f9f44d-d5f0-459d-a3b5-daab1208b688 para 2026-05-22 10:00 (servicio=be42a712-0bbb-441c-b393-669e82067d2e, mascota=d30682e7-09df-4657-b7c8-07680cc3c127)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 16:29:39.856631-04
+58839810-fb9e-4b0e-8200-2957f4d66e8f	66572212-2a85-462d-b620-c32df52175a2	login	Login exitoso (rol=recepcion)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 16:30:10.113002-04
+86221fe9-69bd-4e5a-b025-91538cb1e603	914d75bb-85e0-430a-a528-d44486685778	login	Login exitoso (rol=groomer)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 16:31:19.090814-04
+dbf605ef-b844-409e-9fab-736bfd0f4dcf	66572212-2a85-462d-b620-c32df52175a2	login	Login exitoso (rol=recepcion)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 16:35:53.306606-04
+d3c62b59-6174-4541-9b5b-687bf43684a6	66572212-2a85-462d-b620-c32df52175a2	confirmar_cita	Cita 97f9f44d-d5f0-459d-a3b5-daab1208b688 confirmada	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 16:36:22.773237-04
+3c69939a-38cb-4bbd-944b-723f03ba862c	914d75bb-85e0-430a-a528-d44486685778	login	Login exitoso (rol=groomer)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 16:36:37.647548-04
+2fb1c698-7271-4887-a469-354dd9ef0133	914d75bb-85e0-430a-a528-d44486685778	login	Login exitoso (rol=groomer)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 16:38:35.518545-04
+1ffde24f-4043-452c-9188-f02a8e2da940	66572212-2a85-462d-b620-c32df52175a2	login	Login exitoso (rol=recepcion)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 17:13:46.351121-04
+572a5e82-67ac-404a-a324-2dc37ccd98ee	a766670e-bf00-439f-a11d-4356abf872e7	login_2fa_pendiente	2FA requerido para completar el login	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 17:18:59.78336-04
+85fb404c-dd9c-4cf9-b9b8-ae833864a9ca	a766670e-bf00-439f-a11d-4356abf872e7	login_2fa_ok	Login completado con 2FA	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 17:19:05.997306-04
+188c37cd-4c16-43d0-a198-4a35133041cb	914d75bb-85e0-430a-a528-d44486685778	login	Login exitoso (rol=groomer)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 17:24:48.621943-04
+2dcd5beb-acd5-4c06-a91b-bddf62971f83	914d75bb-85e0-430a-a528-d44486685778	login	Login exitoso (rol=groomer)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 18:12:53.802107-04
+aea138b2-d02a-414a-a9b1-aa07f09cde6e	aa1a55f9-6af0-4481-9b77-2aa8cd309e80	login	Login exitoso (rol=cliente)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 18:13:44.360812-04
+84c19dc0-9fc1-4ea3-960a-0ecc60b835b2	914d75bb-85e0-430a-a528-d44486685778	login	Login exitoso (rol=groomer)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 18:17:11.181084-04
+7879021e-1a8a-4d60-ab54-32b43281bb8c	aa1a55f9-6af0-4481-9b77-2aa8cd309e80	login	Login exitoso (rol=cliente)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-21 18:29:29.364051-04
+dc958992-eddc-4ac6-8725-60585403cb04	aa1a55f9-6af0-4481-9b77-2aa8cd309e80	login	Login exitoso (rol=cliente)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-23 20:56:57.394533-04
+4ccfe755-6993-479c-8890-7c2e841c1cb0	914d75bb-85e0-430a-a528-d44486685778	login	Login exitoso (rol=groomer)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-23 21:08:45.906668-04
+45fe08a1-c8d9-4e55-b0f5-95fdcc0e087e	aa1a55f9-6af0-4481-9b77-2aa8cd309e80	login	Login exitoso (rol=cliente)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-23 21:09:10.929886-04
+70f37d1c-9e16-473e-a149-d5506c0c3b65	aa1a55f9-6af0-4481-9b77-2aa8cd309e80	crear_cita	Cita ecbdb3b8-05c3-4210-b04c-e886596128ee para 2026-05-28 13:00 (servicio=60c7274f-96cb-44b2-86e7-1364ce799f03, mascota=40fe7994-8581-4f47-a094-cbf0dd4c362e)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-23 21:09:23.42695-04
+7711a93b-3e4e-44ee-b2d8-7c14cc2a9d3e	66572212-2a85-462d-b620-c32df52175a2	login	Login exitoso (rol=recepcion)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-23 21:09:44.46096-04
+b55ceeaf-17a5-445f-a24f-46d81682fc5e	66572212-2a85-462d-b620-c32df52175a2	confirmar_cita	Cita ecbdb3b8-05c3-4210-b04c-e886596128ee confirmada	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-23 21:09:56.057336-04
+eac159ff-6f1a-4c04-980e-fa5b729465c6	914d75bb-85e0-430a-a528-d44486685778	login	Login exitoso (rol=groomer)	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	2026-05-23 21:10:11.748495-04
 \.
 
 
 --
+-- TOC entry 5254 (class 0 OID 16873)
+-- Dependencies: 241
 -- Data for Name: bloqueos_agenda; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -611,6 +698,8 @@ COPY public.bloqueos_agenda (id_bloqueo, fecha, motivo, tipo, id_trabajador) FRO
 
 
 --
+-- TOC entry 5251 (class 0 OID 16798)
+-- Dependencies: 238
 -- Data for Name: cajas; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -619,38 +708,70 @@ COPY public.cajas (id_caja, nombre, descripcion, estado, saldo_actual) FROM stdi
 
 
 --
+-- TOC entry 5255 (class 0 OID 16904)
+-- Dependencies: 242
 -- Data for Name: checklist_items; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.checklist_items (id_item, nombre, descripcion) FROM stdin;
+ba554785-9482-461e-a8e5-13767e1e851d	Baño	Baño completo con shampoo y acondicionador
+f87c91ea-d818-482c-bacf-073fe4da5a1c	Corte	Corte de pelo según raza o preferencia del dueño
+1bbc8a18-ddd6-418b-a411-011c654af56d	Uñas	Corte y limado de uñas
+33a3e3eb-1ca5-4519-9d84-21eff4e28da7	Oídos	Limpieza de oídos
+fc30ec8f-33bf-436d-848a-547be5526bd9	Glándulas	Expresión de glándulas anales
+95b6114a-1117-40a5-8441-5f6f38dc6ee5	Perfume	Aplicación de perfume o colonia para mascotas
 \.
 
 
 --
+-- TOC entry 5242 (class 0 OID 16614)
+-- Dependencies: 229
 -- Data for Name: cita_movimientos; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.cita_movimientos (id_movimiento, id_cita, tipo_movimiento, fecha_anterior, fecha_nueva, id_usuario_origen, descripcion, fecha_registro) FROM stdin;
+a04476b5-1412-42b9-afd8-6df184744441	423821ca-a8d9-4217-9ed1-184e2579f3aa	creacion	\N	2026-05-22	aa1a55f9-6af0-4481-9b77-2aa8cd309e80	Cita creada por cliente. Groomer asignado: María Recepción.	2026-05-21 15:16:07.129058-04
+00970538-37f6-4f7d-8f64-b2916df96709	423821ca-a8d9-4217-9ed1-184e2579f3aa	cancelacion_cliente	\N	2026-05-22	aa1a55f9-6af0-4481-9b77-2aa8cd309e80	no puedo asistir ese dia	2026-05-21 15:17:22.934374-04
+843d997e-c107-465b-959d-680e9cc21a0d	ddaf5602-4858-45d8-8929-3c75399475bf	creacion	\N	2026-05-21	aa1a55f9-6af0-4481-9b77-2aa8cd309e80	Cita creada por cliente. Groomer asignado: María Recepción.	2026-05-21 15:18:53.661602-04
+6008ec28-ff35-4195-b135-ebdb1bad6377	ddaf5602-4858-45d8-8929-3c75399475bf	confirmacion	\N	2026-05-21	66572212-2a85-462d-b620-c32df52175a2	Cita confirmada por recepción/admin	2026-05-21 16:12:28.147659-04
+343ad226-f726-4a3d-a931-d5ec67015800	97f9f44d-d5f0-459d-a3b5-daab1208b688	creacion	\N	2026-05-22	aa1a55f9-6af0-4481-9b77-2aa8cd309e80	Cita creada por cliente. Groomer asignado: trabajador groomer.	2026-05-21 16:29:39.856631-04
+dd08c77c-1dd0-431b-8527-9e76d35efa47	97f9f44d-d5f0-459d-a3b5-daab1208b688	confirmacion	\N	2026-05-22	66572212-2a85-462d-b620-c32df52175a2	Cita confirmada por recepción/admin	2026-05-21 16:36:22.773237-04
+2986a279-6361-47dc-bc40-ffb855858924	ecbdb3b8-05c3-4210-b04c-e886596128ee	creacion	\N	2026-05-28	aa1a55f9-6af0-4481-9b77-2aa8cd309e80	Cita creada por cliente. Groomer asignado: trabajador groomer.	2026-05-23 21:09:23.42695-04
+65efe985-da6a-40d4-aa5a-daac8b9b2b88	ecbdb3b8-05c3-4210-b04c-e886596128ee	confirmacion	\N	2026-05-28	66572212-2a85-462d-b620-c32df52175a2	Cita confirmada por recepción/admin	2026-05-23 21:09:56.057336-04
 \.
 
 
 --
+-- TOC entry 5243 (class 0 OID 16639)
+-- Dependencies: 230
 -- Data for Name: cita_trabajadores; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.cita_trabajadores (id_cita_trabajador, id_cita, id_trabajador, fecha_inicio, fecha_fin) FROM stdin;
+e00dc95b-a3bf-404e-a5f9-1ba43c5bbe72	423821ca-a8d9-4217-9ed1-184e2579f3aa	db702cb5-a8e9-4f85-98f3-82b8b46ae389	2026-05-22 10:00:00-04	2026-05-22 11:10:00-04
+39954bd8-ea54-4886-9a15-8dc5ee6bf9c5	ddaf5602-4858-45d8-8929-3c75399475bf	db702cb5-a8e9-4f85-98f3-82b8b46ae389	2026-05-21 09:30:00-04	2026-05-21 11:15:00-04
+e2f90a70-b0ae-4e87-8194-b32037192ff3	97f9f44d-d5f0-459d-a3b5-daab1208b688	b68a03b8-75ce-4a6d-8c14-16fc04596a87	2026-05-22 10:00:00-04	2026-05-22 11:15:00-04
+6c2810a0-5a6b-4b5a-9ee1-213a0ba3bd3f	ecbdb3b8-05c3-4210-b04c-e886596128ee	b68a03b8-75ce-4a6d-8c14-16fc04596a87	2026-05-28 13:00:00-04	2026-05-28 14:40:00-04
 \.
 
 
 --
+-- TOC entry 5241 (class 0 OID 16561)
+-- Dependencies: 228
 -- Data for Name: citas; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.citas (id_cita, id_cliente, id_mascota, id_servicio, fecha_cita, estado_empleado, estado_cliente, estado_global, motivo_cancelacion, cancelado_por, terminado_por_empleado, conforme_por_cliente, fecha_creacion, fecha_ultima_actualizacion) FROM stdin;
+423821ca-a8d9-4217-9ed1-184e2579f3aa	9aa65845-f315-430c-8e6e-d75bdf5f01df	b5c438d1-680f-452a-9e20-be9d1289116d	be42a712-0bbb-441c-b393-669e82067d2e	2026-05-22	cancelada	cancelada	cancelada	no puedo asistir ese dia	aa1a55f9-6af0-4481-9b77-2aa8cd309e80	\N	\N	2026-05-21 15:16:07.129058-04	2026-05-21 15:17:22.934374-04
+ddaf5602-4858-45d8-8929-3c75399475bf	9aa65845-f315-430c-8e6e-d75bdf5f01df	679cc920-19fb-4a07-81c3-c94c4509a65b	60c7274f-96cb-44b2-86e7-1364ce799f03	2026-05-21	confirmada	pendiente	confirmada	\N	\N	\N	\N	2026-05-21 15:18:53.661602-04	2026-05-21 16:12:28.147659-04
+97f9f44d-d5f0-459d-a3b5-daab1208b688	9aa65845-f315-430c-8e6e-d75bdf5f01df	d30682e7-09df-4657-b7c8-07680cc3c127	be42a712-0bbb-441c-b393-669e82067d2e	2026-05-22	confirmada	pendiente	confirmada	\N	\N	\N	\N	2026-05-21 16:29:39.856631-04	2026-05-21 16:36:22.773237-04
+ecbdb3b8-05c3-4210-b04c-e886596128ee	9aa65845-f315-430c-8e6e-d75bdf5f01df	40fe7994-8581-4f47-a094-cbf0dd4c362e	60c7274f-96cb-44b2-86e7-1364ce799f03	2026-05-28	confirmada	pendiente	confirmada	\N	\N	\N	\N	2026-05-23 21:09:23.42695-04	2026-05-23 21:09:56.057336-04
 \.
 
 
 --
+-- TOC entry 5235 (class 0 OID 16461)
+-- Dependencies: 222
 -- Data for Name: clientes; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -664,6 +785,8 @@ be81e941-5820-48c4-bd20-dbfa6cec20d8	fccb7d56-7f64-4091-80a8-f5aefdf27281	787878
 
 
 --
+-- TOC entry 5250 (class 0 OID 16777)
+-- Dependencies: 237
 -- Data for Name: detalle_pedido_clientes; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -674,6 +797,8 @@ b9bd3bb4-d916-4367-a73e-f8f17eda974d	133f2dac-51ae-4f55-974b-0c2a12933492	f74529
 
 
 --
+-- TOC entry 5257 (class 0 OID 16935)
+-- Dependencies: 244
 -- Data for Name: ficha_grooming_checklist; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -682,14 +807,20 @@ COPY public.ficha_grooming_checklist (id_ficha_item, id_ficha, id_item, realizad
 
 
 --
+-- TOC entry 5244 (class 0 OID 16659)
+-- Dependencies: 231
 -- Data for Name: fichas_grooming; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.fichas_grooming (id_ficha, id_cita, estado_ingreso, observaciones, tamano_mascota, fecha_creacion, fecha_cierre, temperatura, notas_internas, consumido_inventario) FROM stdin;
+COPY public.fichas_grooming (id_ficha, id_cita, estado_ingreso, observaciones, tamano_mascota, fecha_creacion, fecha_cierre, temperatura, notas_internas, consumido_inventario, recomendaciones) FROM stdin;
+3387c8d5-391f-44c0-8c71-4f7a48a7be60	97f9f44d-d5f0-459d-a3b5-daab1208b688	\N	\N	\N	2026-05-21 17:24:56.404277-04	\N	\N	\N	f	\N
+db08706e-b70b-452c-a76c-c84fdf61b0d6	ecbdb3b8-05c3-4210-b04c-e886596128ee	\N	\N	\N	2026-05-23 21:10:19.587951-04	\N	\N	\N	f	\N
 \.
 
 
 --
+-- TOC entry 5247 (class 0 OID 16713)
+-- Dependencies: 234
 -- Data for Name: fichas_grooming_insumos; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -698,6 +829,8 @@ COPY public.fichas_grooming_insumos (id_ficha_insumo, id_ficha, id_producto, uni
 
 
 --
+-- TOC entry 5245 (class 0 OID 16678)
+-- Dependencies: 232
 -- Data for Name: fotos_grooming; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -706,6 +839,8 @@ COPY public.fotos_grooming (id_foto, id_ficha, tipo, url_foto, fecha_registro) F
 
 
 --
+-- TOC entry 5239 (class 0 OID 16523)
+-- Dependencies: 226
 -- Data for Name: mascota_vacunas; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -714,14 +849,23 @@ COPY public.mascota_vacunas (id_mascota_vacuna, id_mascota, id_vacuna, fecha_apl
 
 
 --
+-- TOC entry 5237 (class 0 OID 16497)
+-- Dependencies: 224
 -- Data for Name: mascotas; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public.mascotas (id_mascota, id_cliente, nombre, raza, fecha_nacimiento, tamano, peso_kg, foto_url, notas, alergias, restricciones, temperamento) FROM stdin;
+COPY public.mascotas (id_mascota, id_cliente, nombre, raza, fecha_nacimiento, tamano, peso_kg, foto_url, notas, alergias, restricciones, temperamento, activo, especie) FROM stdin;
+89b836ff-899a-46a1-85b9-a916006485df	9aa65845-f315-430c-8e6e-d75bdf5f01df	Luna	Poodle	2020-03-15	pequeño	4.50	\N	Perrita muy sociable con otros perros.	ninguna	ninguna	tranquilo	t	perro
+679cc920-19fb-4a07-81c3-c94c4509a65b	9aa65845-f315-430c-8e6e-d75bdf5f01df	Rocky	Labrador Retriever	2018-10-01	grande	28.00	\N	Le encanta el agua, ideal para baños completos.	alérgico a pollo	evitar mucho esfuerzo después de baño	juguetón	t	perro
+b5c438d1-680f-452a-9e20-be9d1289116d	9aa65845-f315-430c-8e6e-d75bdf5f01df	Mishi	Gato mestizo	2019-07-20	mediano	5.20	\N	Se estresa fácil con ruidos fuertes.	ninguna conocida	no usar perfume	nervioso	t	gato
+d30682e7-09df-4657-b7c8-07680cc3c127	9aa65845-f315-430c-8e6e-d75bdf5f01df	salem	Peludo	2015-06-19	grande	\N	\N	Agua	\N	\N	Tranquilo	t	gato
+40fe7994-8581-4f47-a094-cbf0dd4c362e	9aa65845-f315-430c-8e6e-d75bdf5f01df	Wilson	corgi	2015-07-15	mediano	\N	/uploads/mascotas/1779584904891-ljt9vtc5hfp.jpg	no usar perfume fuerte			Tranquilo	t	perro
 \.
 
 
 --
+-- TOC entry 5248 (class 0 OID 16733)
+-- Dependencies: 235
 -- Data for Name: opiniones; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -730,6 +874,8 @@ COPY public.opiniones (id_opinion, id_cita, id_cliente, calificacion, comentario
 
 
 --
+-- TOC entry 5253 (class 0 OID 16853)
+-- Dependencies: 240
 -- Data for Name: pagos_empleados; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -738,6 +884,8 @@ COPY public.pagos_empleados (id_pago, id_trabajador, monto, fecha_pago, periodo_
 
 
 --
+-- TOC entry 5249 (class 0 OID 16757)
+-- Dependencies: 236
 -- Data for Name: pedidos_clientes; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -752,6 +900,8 @@ COPY public.pedidos_clientes (id_pedido, id_cliente, fecha_pedido, total, estado
 
 
 --
+-- TOC entry 5246 (class 0 OID 16697)
+-- Dependencies: 233
 -- Data for Name: productos; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -765,6 +915,8 @@ c38f7159-71b5-460f-afa0-30f04ae14c10	Shampoo Spa Basic	Shampoo estándar para ba
 
 
 --
+-- TOC entry 5233 (class 0 OID 16427)
+-- Dependencies: 220
 -- Data for Name: roles; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -779,6 +931,8 @@ f009700d-6ded-497d-b167-e1fbfc1d0412	groomer	Groomer o estilista canino: realiza
 
 
 --
+-- TOC entry 5256 (class 0 OID 16914)
+-- Dependencies: 243
 -- Data for Name: servicio_checklist_items; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -787,14 +941,21 @@ COPY public.servicio_checklist_items (id_servicio_checklist, id_servicio, id_ite
 
 
 --
+-- TOC entry 5240 (class 0 OID 16545)
+-- Dependencies: 227
 -- Data for Name: servicios; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
 COPY public.servicios (id_servicio, nombre, descripcion, duracion_estimada_min, precio, unidades_base_insumo, activo, permite_doble_booking, requiere_bloqueo_consecutivo, factor_tamano_raza) FROM stdin;
+e4f983dc-9b85-4bbe-92d3-474c51fcbf11	Baño rápido	Baño básico con shampoo neutro y secado ligero.	30	25.00	1.00	t	f	f	{"grande": 1.15, "gigante": 1.3, "mediano": 1.1, "pequeño": 1.0}
+be42a712-0bbb-441c-b393-669e82067d2e	Baño completo	Baño profundo con limpieza de oídos, corte de uñas y secado completo.	60	40.00	1.50	t	f	f	{"grande": 1.2, "gigante": 1.3, "mediano": 1.1, "pequeño": 1.0}
+60c7274f-96cb-44b2-86e7-1364ce799f03	Corte y peinado	Corte de pelo personalizado y peinado según la raza o preferencia del dueño.	90	50.00	1.50	t	f	t	{"grande": 1.15, "gigante": 1.3, "mediano": 1.1, "pequeño": 1.0}
 \.
 
 
 --
+-- TOC entry 5236 (class 0 OID 16478)
+-- Dependencies: 223
 -- Data for Name: trabajadores; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -809,6 +970,8 @@ b68a03b8-75ce-4a6d-8c14-16fc04596a87	914d75bb-85e0-430a-a528-d44486685778	1500.0
 
 
 --
+-- TOC entry 5252 (class 0 OID 16812)
+-- Dependencies: 239
 -- Data for Name: transacciones; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -817,6 +980,8 @@ COPY public.transacciones (id_transaccion, id_caja, tipo, monto, descripcion, fe
 
 
 --
+-- TOC entry 5259 (class 0 OID 16983)
+-- Dependencies: 246
 -- Data for Name: user_activation_tokens; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -827,6 +992,8 @@ beb41e46-37ac-49f7-adbd-3c1e887e2fef	9503797d-fb43-477f-bef9-d9269c290317	7c1f1d
 
 
 --
+-- TOC entry 5234 (class 0 OID 16439)
+-- Dependencies: 221
 -- Data for Name: usuarios; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -836,23 +1003,25 @@ ea847127-93e0-4f92-933e-1c9490469dca	77ed81e1-f80a-4c8c-9a18-84b08e64c56d	Usuari
 524ff7f3-f028-4fb5-a19b-8830dc6a9074	d6b9f5ed-bca4-4df1-a08f-37f9f10ebc49	Groomer Demo	groomer.demo@example.com	$2b$10$abcdefghijklmnopqrstuv0123456789ABCDEFGHijklmno	activo	f	\N	\N	\N	\N	f	0	\N	2026-05-08 00:15:29.93404-04
 ee2a3003-68bf-4784-b0b8-92eabf618895	d54eeb02-cb20-4c45-89b1-5a28b5c780de	Admin Demo	admin.demo@example.com	$2b$10$abcdefghijklmnopqrstuv0123456789ABCDEFGHijklmno	activo	f	\N	\N	\N	\N	f	0	\N	2026-05-08 00:15:29.93404-04
 42ba1dca-54d4-4e62-b74f-dd8ddaa2b663	df8b4e9c-72e8-4e27-aba4-3d66074dfbf5	Jefe Demo	jefe.demo@example.com	$2b$10$abcdefghijklmnopqrstuv0123456789ABCDEFGHijklmno	activo	f	\N	\N	\N	\N	f	0	\N	2026-05-08 00:15:29.93404-04
-4a45b2e2-a474-4154-b2ef-5c4c2a0c8c60	d6b9f5ed-bca4-4df1-a08f-37f9f10ebc49	Pepe Perez	pep10@empleado.com	$2b$12$Fpw5w4AwVDLQCE4CfMuZH.IgLOIxGLWvuUFhqpOKZSAUmX.PkThJW	activo	f	\N	\N	\N	\N	t	0	\N	2026-05-08 00:15:29.93404-04
 630c7840-4f89-4594-940d-71a01641f2d7	77ed81e1-f80a-4c8c-9a18-84b08e64c56d	Juan Gomez	juan10@cliente.com	$2b$12$WJ04DbuH5jUHD5uA5644ZO2k3gNcgM/S1Fr9LkpAkIRiERsYKXg5O	activo	f	\N	\N	\N	\N	f	0	\N	2026-05-08 00:15:29.93404-04
 fccb7d56-7f64-4091-80a8-f5aefdf27281	77ed81e1-f80a-4c8c-9a18-84b08e64c56d	Sara Rojas	sara10@cliente.com	$2b$12$/vEhMxmzdzF4jbHTXOh/gOXvTiysCsmskSOb7n0OADNSIM9VtsK4O	activo	f	\N	\N	\N	\N	f	0	\N	2026-05-08 00:15:29.93404-04
 43366bb9-bed2-4fc9-b929-bb171ac5b059	f009700d-6ded-497d-b167-e1fbfc1d0412	Luis Groomer	groomer1@petspa.test	$2b$12$07zP9ZNsMMYESKg2.E26je6schQXy4Qgk87kq0NJbxAnt/tIEM7ui	activo	f	\N	\N	\N	\N	t	0	\N	2026-05-08 20:55:56.722756-04
-aa1a55f9-6af0-4481-9b77-2aa8cd309e80	77ed81e1-f80a-4c8c-9a18-84b08e64c56d	Mario Perez	marioperez@cliente.com	$2b$12$LIlpp7JaBFOATEVKRikblepZJi5ZeplndzKDxw.cfszdjDHbD8h6y	activo	f	\N	\N	\N	\N	f	0	\N	2026-05-08 22:49:22.929529-04
+a766670e-bf00-439f-a11d-4356abf872e7	d54eeb02-cb20-4c45-89b1-5a28b5c780de	Admin	admin@petspa.test	$2b$10$CnpEO1MSH4jrmBHGybYBXeK5wd8CzQ7x1xo6TbX8LvP1Zy1zkFHYK	activo	t	NRFVUTDQFERWKJJEJB3CIRCWKJRVK2KE	2026-05-21 17:19:05.995975-04	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	f	0	\N	2026-05-08 00:15:29.93404-04
 a201fb07-02ca-4b40-ae80-6ca21ce5a907	f009700d-6ded-497d-b167-e1fbfc1d0412	empleado 1	empleado123@gmail.com	$2b$12$PO8k0xJjdD/xkMLukiyEWesPh.nUPOp7rzDoWBXIWM3vgKBm6fvUa	inactivo	f	\N	2026-05-08 22:54:01.655485-04	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	f	0	\N	2026-05-08 22:52:40.973847-04
-a20a7bcf-94ac-4258-8433-a7224d519ba4	d6b9f5ed-bca4-4df1-a08f-37f9f10ebc49	Mario Bross	mario10@empleado.com	$2b$12$7fkUU6s8RI18SgBY5JMbIOIQrpoZ3H5cfH.naO6msx8UyK8xywiMy	activo	f	\N	2026-05-08 20:35:23.576405-04	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	f	0	\N	2026-05-08 00:15:29.93404-04
-914d75bb-85e0-430a-a528-d44486685778	f009700d-6ded-497d-b167-e1fbfc1d0412	trabajador groomer	trabajadorgroomer@gmail.com	$2b$12$jFuDRFQfYAJxIjcS9XQAZuThH7j6avlVRwa7PLIOJl4N6PdmksXN2	activo	f	\N	2026-05-08 22:41:51.501457-04	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	f	0	\N	2026-05-08 22:40:38.335128-04
-a766670e-bf00-439f-a11d-4356abf872e7	d54eeb02-cb20-4c45-89b1-5a28b5c780de	Admin	admin@petspa.test	$2b$10$CnpEO1MSH4jrmBHGybYBXeK5wd8CzQ7x1xo6TbX8LvP1Zy1zkFHYK	activo	t	NRFVUTDQFERWKJJEJB3CIRCWKJRVK2KE	2026-05-14 11:28:33.602866-04	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	f	0	\N	2026-05-08 00:15:29.93404-04
+914d75bb-85e0-430a-a528-d44486685778	f009700d-6ded-497d-b167-e1fbfc1d0412	trabajador groomer	trabajadorgroomer@gmail.com	$2b$12$jFuDRFQfYAJxIjcS9XQAZuThH7j6avlVRwa7PLIOJl4N6PdmksXN2	activo	f	\N	2026-05-23 21:10:11.747285-04	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	f	0	\N	2026-05-08 22:40:38.335128-04
 4a576cd7-4620-4925-aa27-48d3324c8e12	d54eeb02-cb20-4c45-89b1-5a28b5c780de	Gabriel Admin	g10admin@admin.com	$2b$12$P/RwEA4ItXlCsLmI3L44w.YfRcROAOHO.IOJhNsF65tlCA8RCqI4i	activo	t	H5ISSTZ2HQXHIQ3ZNZPE2SSDNMTES2CV	2026-05-08 22:56:38.782597-04	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	f	0	\N	2026-05-08 21:00:40.655012-04
-66572212-2a85-462d-b620-c32df52175a2	55d83f35-2b91-4cec-869d-90a437391f12	María Recepción	recepcion1@petspa.test	$2b$12$rtL3N39tnU5af9zcGgOTleQk4/IowJLjUUs5VOhOCiujnp0PTFwZK	activo	f	\N	2026-05-08 20:53:44.922722-04	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	f	0	\N	2026-05-08 20:47:04.106599-04
+aa1a55f9-6af0-4481-9b77-2aa8cd309e80	77ed81e1-f80a-4c8c-9a18-84b08e64c56d	Mario Perez	marioperez@cliente.com	$2b$12$LIlpp7JaBFOATEVKRikblepZJi5ZeplndzKDxw.cfszdjDHbD8h6y	activo	f	\N	2026-05-23 21:09:10.928145-04	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	f	0	\N	2026-05-08 22:49:22.929529-04
 9503797d-fb43-477f-bef9-d9269c290317	77ed81e1-f80a-4c8c-9a18-84b08e64c56d	juan perez gomez	jperez@cliente.com	$2b$12$rNqSuKJRin9M7xzdXWBzd.RzL5UT8jnzKxfDPV0tMgkCNRkSFxRP6	activo	f	\N	\N	\N	\N	f	0	\N	2026-05-08 22:45:20.607924-04
+66572212-2a85-462d-b620-c32df52175a2	55d83f35-2b91-4cec-869d-90a437391f12	María Recepción	recepcion1@petspa.test	$2b$12$rtL3N39tnU5af9zcGgOTleQk4/IowJLjUUs5VOhOCiujnp0PTFwZK	activo	f	\N	2026-05-23 21:09:44.459669-04	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	f	0	\N	2026-05-08 20:47:04.106599-04
 99c2c44b-8543-4e3d-ad5c-46b4395e0044	d54eeb02-cb20-4c45-89b1-5a28b5c780de	Administrador	adminprueba@petspa.com	$2b$12$YcsxBNUH3I2X/LkL1NOdxO./GHOGJfFOLzEUXgUOT.CaTBay00kou	activo	f	\N	2026-05-14 11:31:42.389571-04	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	f	0	\N	2026-05-14 11:31:17.828018-04
+a20a7bcf-94ac-4258-8433-a7224d519ba4	d6b9f5ed-bca4-4df1-a08f-37f9f10ebc49	Mario Bross	mario10@empleado.com	$2b$12$7fkUU6s8RI18SgBY5JMbIOIQrpoZ3H5cfH.naO6msx8UyK8xywiMy	activo	f	\N	2026-05-08 20:35:23.576405-04	::1	Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36	f	1	\N	2026-05-08 00:15:29.93404-04
+4a45b2e2-a474-4154-b2ef-5c4c2a0c8c60	d6b9f5ed-bca4-4df1-a08f-37f9f10ebc49	Pepe Perez	pep10@empleado.com	$2b$12$Fpw5w4AwVDLQCE4CfMuZH.IgLOIxGLWvuUFhqpOKZSAUmX.PkThJW	inactivo	f	\N	\N	\N	\N	t	0	\N	2026-05-08 00:15:29.93404-04
 \.
 
 
 --
+-- TOC entry 5238 (class 0 OID 16513)
+-- Dependencies: 225
 -- Data for Name: vacunas; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
@@ -861,6 +1030,7 @@ COPY public.vacunas (id_vacuna, nombre, descripcion) FROM stdin;
 
 
 --
+-- TOC entry 5041 (class 2606 OID 16973)
 -- Name: audit_log audit_log_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -869,6 +1039,7 @@ ALTER TABLE ONLY public.audit_log
 
 
 --
+-- TOC entry 5023 (class 2606 OID 16883)
 -- Name: bloqueos_agenda bloqueos_agenda_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -877,6 +1048,7 @@ ALTER TABLE ONLY public.bloqueos_agenda
 
 
 --
+-- TOC entry 5017 (class 2606 OID 16811)
 -- Name: cajas cajas_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -885,6 +1057,16 @@ ALTER TABLE ONLY public.cajas
 
 
 --
+-- TOC entry 5027 (class 2606 OID 17020)
+-- Name: checklist_items checklist_items_nombre_unique; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.checklist_items
+    ADD CONSTRAINT checklist_items_nombre_unique UNIQUE (nombre);
+
+
+--
+-- TOC entry 5029 (class 2606 OID 16913)
 -- Name: checklist_items checklist_items_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -893,6 +1075,7 @@ ALTER TABLE ONLY public.checklist_items
 
 
 --
+-- TOC entry 4991 (class 2606 OID 16628)
 -- Name: cita_movimientos cita_movimientos_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -901,6 +1084,7 @@ ALTER TABLE ONLY public.cita_movimientos
 
 
 --
+-- TOC entry 4993 (class 2606 OID 16648)
 -- Name: cita_trabajadores cita_trabajadores_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -909,6 +1093,7 @@ ALTER TABLE ONLY public.cita_trabajadores
 
 
 --
+-- TOC entry 4988 (class 2606 OID 16583)
 -- Name: citas citas_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -917,6 +1102,7 @@ ALTER TABLE ONLY public.citas
 
 
 --
+-- TOC entry 4972 (class 2606 OID 16472)
 -- Name: clientes clientes_id_usuario_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -925,6 +1111,7 @@ ALTER TABLE ONLY public.clientes
 
 
 --
+-- TOC entry 4974 (class 2606 OID 16470)
 -- Name: clientes clientes_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -933,6 +1120,7 @@ ALTER TABLE ONLY public.clientes
 
 
 --
+-- TOC entry 5015 (class 2606 OID 16787)
 -- Name: detalle_pedido_clientes detalle_pedido_clientes_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -941,6 +1129,16 @@ ALTER TABLE ONLY public.detalle_pedido_clientes
 
 
 --
+-- TOC entry 5035 (class 2606 OID 17022)
+-- Name: ficha_grooming_checklist fgc_ficha_item_unique; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.ficha_grooming_checklist
+    ADD CONSTRAINT fgc_ficha_item_unique UNIQUE (id_ficha, id_item);
+
+
+--
+-- TOC entry 5037 (class 2606 OID 16949)
 -- Name: ficha_grooming_checklist ficha_grooming_checklist_id_ficha_id_item_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -949,6 +1147,7 @@ ALTER TABLE ONLY public.ficha_grooming_checklist
 
 
 --
+-- TOC entry 5039 (class 2606 OID 16947)
 -- Name: ficha_grooming_checklist ficha_grooming_checklist_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -957,6 +1156,7 @@ ALTER TABLE ONLY public.ficha_grooming_checklist
 
 
 --
+-- TOC entry 4997 (class 2606 OID 16672)
 -- Name: fichas_grooming fichas_grooming_id_cita_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -965,6 +1165,16 @@ ALTER TABLE ONLY public.fichas_grooming
 
 
 --
+-- TOC entry 4999 (class 2606 OID 17016)
+-- Name: fichas_grooming fichas_grooming_id_cita_unique; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.fichas_grooming
+    ADD CONSTRAINT fichas_grooming_id_cita_unique UNIQUE (id_cita);
+
+
+--
+-- TOC entry 5009 (class 2606 OID 16722)
 -- Name: fichas_grooming_insumos fichas_grooming_insumos_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -973,6 +1183,7 @@ ALTER TABLE ONLY public.fichas_grooming_insumos
 
 
 --
+-- TOC entry 5001 (class 2606 OID 16670)
 -- Name: fichas_grooming fichas_grooming_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -981,6 +1192,7 @@ ALTER TABLE ONLY public.fichas_grooming
 
 
 --
+-- TOC entry 5003 (class 2606 OID 16691)
 -- Name: fotos_grooming fotos_grooming_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -989,6 +1201,7 @@ ALTER TABLE ONLY public.fotos_grooming
 
 
 --
+-- TOC entry 4984 (class 2606 OID 16534)
 -- Name: mascota_vacunas mascota_vacunas_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -997,6 +1210,7 @@ ALTER TABLE ONLY public.mascota_vacunas
 
 
 --
+-- TOC entry 4980 (class 2606 OID 16507)
 -- Name: mascotas mascotas_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1005,6 +1219,7 @@ ALTER TABLE ONLY public.mascotas
 
 
 --
+-- TOC entry 5011 (class 2606 OID 16746)
 -- Name: opiniones opiniones_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1013,6 +1228,7 @@ ALTER TABLE ONLY public.opiniones
 
 
 --
+-- TOC entry 5021 (class 2606 OID 16867)
 -- Name: pagos_empleados pagos_empleados_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1021,6 +1237,7 @@ ALTER TABLE ONLY public.pagos_empleados
 
 
 --
+-- TOC entry 5013 (class 2606 OID 16771)
 -- Name: pedidos_clientes pedidos_clientes_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1029,6 +1246,7 @@ ALTER TABLE ONLY public.pedidos_clientes
 
 
 --
+-- TOC entry 5005 (class 2606 OID 16712)
 -- Name: productos productos_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1037,6 +1255,7 @@ ALTER TABLE ONLY public.productos
 
 
 --
+-- TOC entry 5007 (class 2606 OID 16899)
 -- Name: productos productos_sku_unique; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1045,6 +1264,7 @@ ALTER TABLE ONLY public.productos
 
 
 --
+-- TOC entry 4964 (class 2606 OID 16438)
 -- Name: roles roles_name_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1053,6 +1273,7 @@ ALTER TABLE ONLY public.roles
 
 
 --
+-- TOC entry 4966 (class 2606 OID 16436)
 -- Name: roles roles_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1061,6 +1282,7 @@ ALTER TABLE ONLY public.roles
 
 
 --
+-- TOC entry 5031 (class 2606 OID 16924)
 -- Name: servicio_checklist_items servicio_checklist_items_id_servicio_id_item_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1069,6 +1291,7 @@ ALTER TABLE ONLY public.servicio_checklist_items
 
 
 --
+-- TOC entry 5033 (class 2606 OID 16922)
 -- Name: servicio_checklist_items servicio_checklist_items_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1077,6 +1300,7 @@ ALTER TABLE ONLY public.servicio_checklist_items
 
 
 --
+-- TOC entry 4986 (class 2606 OID 16560)
 -- Name: servicios servicios_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1085,6 +1309,7 @@ ALTER TABLE ONLY public.servicios
 
 
 --
+-- TOC entry 4976 (class 2606 OID 16491)
 -- Name: trabajadores trabajadores_id_usuario_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1093,6 +1318,7 @@ ALTER TABLE ONLY public.trabajadores
 
 
 --
+-- TOC entry 4978 (class 2606 OID 16489)
 -- Name: trabajadores trabajadores_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1101,6 +1327,7 @@ ALTER TABLE ONLY public.trabajadores
 
 
 --
+-- TOC entry 5019 (class 2606 OID 16832)
 -- Name: transacciones transacciones_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1109,6 +1336,7 @@ ALTER TABLE ONLY public.transacciones
 
 
 --
+-- TOC entry 5048 (class 2606 OID 16998)
 -- Name: user_activation_tokens user_activation_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1117,6 +1345,7 @@ ALTER TABLE ONLY public.user_activation_tokens
 
 
 --
+-- TOC entry 4968 (class 2606 OID 16455)
 -- Name: usuarios usuarios_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1125,6 +1354,7 @@ ALTER TABLE ONLY public.usuarios
 
 
 --
+-- TOC entry 4970 (class 2606 OID 16453)
 -- Name: usuarios usuarios_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1133,6 +1363,7 @@ ALTER TABLE ONLY public.usuarios
 
 
 --
+-- TOC entry 4982 (class 2606 OID 16522)
 -- Name: vacunas vacunas_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1141,6 +1372,7 @@ ALTER TABLE ONLY public.vacunas
 
 
 --
+-- TOC entry 5045 (class 1259 OID 17004)
 -- Name: idx_activation_tokens_token; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1148,6 +1380,7 @@ CREATE INDEX idx_activation_tokens_token ON public.user_activation_tokens USING 
 
 
 --
+-- TOC entry 5046 (class 1259 OID 17005)
 -- Name: idx_activation_tokens_user; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1155,6 +1388,7 @@ CREATE INDEX idx_activation_tokens_user ON public.user_activation_tokens USING b
 
 
 --
+-- TOC entry 5042 (class 1259 OID 17008)
 -- Name: idx_audit_log_accion; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1162,6 +1396,7 @@ CREATE INDEX idx_audit_log_accion ON public.audit_log USING btree (accion);
 
 
 --
+-- TOC entry 5043 (class 1259 OID 17007)
 -- Name: idx_audit_log_fecha; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1169,6 +1404,7 @@ CREATE INDEX idx_audit_log_fecha ON public.audit_log USING btree (fecha DESC);
 
 
 --
+-- TOC entry 5044 (class 1259 OID 17009)
 -- Name: idx_audit_log_id_usuario; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -1176,6 +1412,47 @@ CREATE INDEX idx_audit_log_id_usuario ON public.audit_log USING btree (id_usuari
 
 
 --
+-- TOC entry 5024 (class 1259 OID 17012)
+-- Name: idx_bloqueos_fecha; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_bloqueos_fecha ON public.bloqueos_agenda USING btree (fecha);
+
+
+--
+-- TOC entry 5025 (class 1259 OID 17013)
+-- Name: idx_bloqueos_trabajador_fecha; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_bloqueos_trabajador_fecha ON public.bloqueos_agenda USING btree (id_trabajador, fecha) WHERE (id_trabajador IS NOT NULL);
+
+
+--
+-- TOC entry 4994 (class 1259 OID 17011)
+-- Name: idx_cita_trabajadores_cita; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_cita_trabajadores_cita ON public.cita_trabajadores USING btree (id_cita);
+
+
+--
+-- TOC entry 4995 (class 1259 OID 17010)
+-- Name: idx_cita_trabajadores_trab_inicio; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_cita_trabajadores_trab_inicio ON public.cita_trabajadores USING btree (id_trabajador, fecha_inicio);
+
+
+--
+-- TOC entry 4989 (class 1259 OID 17014)
+-- Name: idx_citas_fecha_estado; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE INDEX idx_citas_fecha_estado ON public.citas USING btree (fecha_cita, estado_global);
+
+
+--
+-- TOC entry 5079 (class 2606 OID 16884)
 -- Name: bloqueos_agenda bloqueos_agenda_id_trabajador_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1184,6 +1461,7 @@ ALTER TABLE ONLY public.bloqueos_agenda
 
 
 --
+-- TOC entry 5061 (class 2606 OID 16629)
 -- Name: cita_movimientos cita_movimientos_id_cita_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1192,6 +1470,7 @@ ALTER TABLE ONLY public.cita_movimientos
 
 
 --
+-- TOC entry 5062 (class 2606 OID 16634)
 -- Name: cita_movimientos cita_movimientos_id_usuario_origen_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1200,6 +1479,7 @@ ALTER TABLE ONLY public.cita_movimientos
 
 
 --
+-- TOC entry 5063 (class 2606 OID 16649)
 -- Name: cita_trabajadores cita_trabajadores_id_cita_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1208,6 +1488,7 @@ ALTER TABLE ONLY public.cita_trabajadores
 
 
 --
+-- TOC entry 5064 (class 2606 OID 16654)
 -- Name: cita_trabajadores cita_trabajadores_id_trabajador_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1216,6 +1497,7 @@ ALTER TABLE ONLY public.cita_trabajadores
 
 
 --
+-- TOC entry 5055 (class 2606 OID 16599)
 -- Name: citas citas_cancelado_por_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1224,6 +1506,7 @@ ALTER TABLE ONLY public.citas
 
 
 --
+-- TOC entry 5056 (class 2606 OID 16609)
 -- Name: citas citas_conforme_por_cliente_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1232,6 +1515,7 @@ ALTER TABLE ONLY public.citas
 
 
 --
+-- TOC entry 5057 (class 2606 OID 16584)
 -- Name: citas citas_id_cliente_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1240,6 +1524,7 @@ ALTER TABLE ONLY public.citas
 
 
 --
+-- TOC entry 5058 (class 2606 OID 16589)
 -- Name: citas citas_id_mascota_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1248,6 +1533,7 @@ ALTER TABLE ONLY public.citas
 
 
 --
+-- TOC entry 5059 (class 2606 OID 16594)
 -- Name: citas citas_id_servicio_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1256,6 +1542,7 @@ ALTER TABLE ONLY public.citas
 
 
 --
+-- TOC entry 5060 (class 2606 OID 16604)
 -- Name: citas citas_terminado_por_empleado_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1264,6 +1551,7 @@ ALTER TABLE ONLY public.citas
 
 
 --
+-- TOC entry 5050 (class 2606 OID 16473)
 -- Name: clientes clientes_id_usuario_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1272,6 +1560,7 @@ ALTER TABLE ONLY public.clientes
 
 
 --
+-- TOC entry 5072 (class 2606 OID 16788)
 -- Name: detalle_pedido_clientes detalle_pedido_clientes_id_pedido_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1280,6 +1569,7 @@ ALTER TABLE ONLY public.detalle_pedido_clientes
 
 
 --
+-- TOC entry 5073 (class 2606 OID 16793)
 -- Name: detalle_pedido_clientes detalle_pedido_clientes_id_producto_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1288,6 +1578,7 @@ ALTER TABLE ONLY public.detalle_pedido_clientes
 
 
 --
+-- TOC entry 5082 (class 2606 OID 16950)
 -- Name: ficha_grooming_checklist ficha_grooming_checklist_id_ficha_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1296,6 +1587,7 @@ ALTER TABLE ONLY public.ficha_grooming_checklist
 
 
 --
+-- TOC entry 5083 (class 2606 OID 16955)
 -- Name: ficha_grooming_checklist ficha_grooming_checklist_id_item_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1304,6 +1596,7 @@ ALTER TABLE ONLY public.ficha_grooming_checklist
 
 
 --
+-- TOC entry 5065 (class 2606 OID 16673)
 -- Name: fichas_grooming fichas_grooming_id_cita_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1312,6 +1605,7 @@ ALTER TABLE ONLY public.fichas_grooming
 
 
 --
+-- TOC entry 5067 (class 2606 OID 16723)
 -- Name: fichas_grooming_insumos fichas_grooming_insumos_id_ficha_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1320,6 +1614,7 @@ ALTER TABLE ONLY public.fichas_grooming_insumos
 
 
 --
+-- TOC entry 5068 (class 2606 OID 16728)
 -- Name: fichas_grooming_insumos fichas_grooming_insumos_id_producto_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1328,6 +1623,7 @@ ALTER TABLE ONLY public.fichas_grooming_insumos
 
 
 --
+-- TOC entry 5084 (class 2606 OID 16974)
 -- Name: audit_log fk_audit_usuario; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1336,6 +1632,7 @@ ALTER TABLE ONLY public.audit_log
 
 
 --
+-- TOC entry 5066 (class 2606 OID 16692)
 -- Name: fotos_grooming fotos_grooming_id_ficha_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1344,6 +1641,7 @@ ALTER TABLE ONLY public.fotos_grooming
 
 
 --
+-- TOC entry 5053 (class 2606 OID 16535)
 -- Name: mascota_vacunas mascota_vacunas_id_mascota_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1352,6 +1650,7 @@ ALTER TABLE ONLY public.mascota_vacunas
 
 
 --
+-- TOC entry 5054 (class 2606 OID 16540)
 -- Name: mascota_vacunas mascota_vacunas_id_vacuna_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1360,6 +1659,7 @@ ALTER TABLE ONLY public.mascota_vacunas
 
 
 --
+-- TOC entry 5052 (class 2606 OID 16508)
 -- Name: mascotas mascotas_id_cliente_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1368,6 +1668,7 @@ ALTER TABLE ONLY public.mascotas
 
 
 --
+-- TOC entry 5069 (class 2606 OID 16747)
 -- Name: opiniones opiniones_id_cita_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1376,6 +1677,7 @@ ALTER TABLE ONLY public.opiniones
 
 
 --
+-- TOC entry 5070 (class 2606 OID 16752)
 -- Name: opiniones opiniones_id_cliente_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1384,6 +1686,7 @@ ALTER TABLE ONLY public.opiniones
 
 
 --
+-- TOC entry 5078 (class 2606 OID 16868)
 -- Name: pagos_empleados pagos_empleados_id_trabajador_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1392,6 +1695,7 @@ ALTER TABLE ONLY public.pagos_empleados
 
 
 --
+-- TOC entry 5071 (class 2606 OID 16772)
 -- Name: pedidos_clientes pedidos_clientes_id_cliente_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1400,6 +1704,7 @@ ALTER TABLE ONLY public.pedidos_clientes
 
 
 --
+-- TOC entry 5080 (class 2606 OID 16930)
 -- Name: servicio_checklist_items servicio_checklist_items_id_item_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1408,6 +1713,7 @@ ALTER TABLE ONLY public.servicio_checklist_items
 
 
 --
+-- TOC entry 5081 (class 2606 OID 16925)
 -- Name: servicio_checklist_items servicio_checklist_items_id_servicio_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1416,6 +1722,7 @@ ALTER TABLE ONLY public.servicio_checklist_items
 
 
 --
+-- TOC entry 5051 (class 2606 OID 16492)
 -- Name: trabajadores trabajadores_id_usuario_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1424,6 +1731,7 @@ ALTER TABLE ONLY public.trabajadores
 
 
 --
+-- TOC entry 5074 (class 2606 OID 16833)
 -- Name: transacciones transacciones_id_caja_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1432,6 +1740,7 @@ ALTER TABLE ONLY public.transacciones
 
 
 --
+-- TOC entry 5075 (class 2606 OID 16843)
 -- Name: transacciones transacciones_id_usuario_admin_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1440,6 +1749,7 @@ ALTER TABLE ONLY public.transacciones
 
 
 --
+-- TOC entry 5076 (class 2606 OID 16848)
 -- Name: transacciones transacciones_id_usuario_jefe_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1448,6 +1758,7 @@ ALTER TABLE ONLY public.transacciones
 
 
 --
+-- TOC entry 5077 (class 2606 OID 16838)
 -- Name: transacciones transacciones_id_usuario_solicita_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1456,6 +1767,7 @@ ALTER TABLE ONLY public.transacciones
 
 
 --
+-- TOC entry 5085 (class 2606 OID 16999)
 -- Name: user_activation_tokens user_activation_tokens_id_usuario_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1464,6 +1776,7 @@ ALTER TABLE ONLY public.user_activation_tokens
 
 
 --
+-- TOC entry 5049 (class 2606 OID 16456)
 -- Name: usuarios usuarios_id_rol_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -1471,9 +1784,11 @@ ALTER TABLE ONLY public.usuarios
     ADD CONSTRAINT usuarios_id_rol_fkey FOREIGN KEY (id_rol) REFERENCES public.roles(id_rol);
 
 
+-- Completed on 2026-05-23 21:22:07
+
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ABCYeIHM6Vtng1PEgszM67LlGf4ghp8r4gD25uJx06PA9wZOId9qYSNgDbWkeft
+\unrestrict rQl7HE844h8FUWoWXqaMyBa75wL7zkiaO44weRg2a6Oejuhrklmo3Vxw9RSTB0T
 

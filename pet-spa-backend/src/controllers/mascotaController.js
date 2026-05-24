@@ -61,6 +61,30 @@ exports.getMascotaByIdForStaff = async (req, res, next) => {
 };
 
 // ──────────────────────────────────────────────
+// POST /api/mascotas/:id/foto
+// Roles: CLIENTE (solo sus mascotas), RECEPCION, ADMIN, JEFE
+// Multipart field: foto (image/*)
+// ──────────────────────────────────────────────
+exports.uploadFoto = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No se recibió ningún archivo de imagen' });
+    }
+    const fotoUrl = `/uploads/mascotas/${req.file.filename}`;
+    const mascota = await mascotaService.uploadFotoMascota(
+      req.user.id_usuario,
+      req.user.rol_name,
+      req.params.id,
+      fotoUrl
+    );
+    return res.status(200).json({ mascota });
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    next(err);
+  }
+};
+
+// ──────────────────────────────────────────────
 // DELETE /api/mascotas/:id
 // Rol: CLIENTE
 // Devuelve 409 si la mascota tiene citas activas.

@@ -3,6 +3,16 @@ import { ref, onMounted } from 'vue';
 import { mascotaApi } from '@/api/mascotaApi';
 import AppCard from '@/components/AppCard.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
+import perroDefault from '@/assets/perro-default.svg';
+import gatoDefault  from '@/assets/gato-default.svg';
+
+const BACKEND_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api').replace(/\/api\/?$/, '');
+function mascotaFotoSrc(m) {
+  if (m?.foto_url) return `${BACKEND_URL}${m.foto_url}`;
+  if (m?.especie === 'perro') return perroDefault;
+  if (m?.especie === 'gato')  return gatoDefault;
+  return perroDefault;
+}
 
 const mascotas = ref([]);
 const loading  = ref(false);
@@ -13,6 +23,7 @@ const successMsg = ref('');
 const showForm    = ref(false);
 const editingId   = ref(null);   // null = crear, uuid = editar
 const saving      = ref(false);
+const selectedFile = ref(null);
 
 const emptyForm = () => ({
   nombre: '',
@@ -48,6 +59,7 @@ async function loadMascotas() {
 function openCreate() {
   editingId.value = null;
   form.value = emptyForm();
+  selectedFile.value = null;
   successMsg.value = '';
   errorMsg.value = '';
   showForm.value = true;
@@ -74,6 +86,7 @@ function openEdit(m) {
 function cancelForm() {
   showForm.value = false;
   editingId.value = null;
+  selectedFile.value = null;
 }
 
 async function onSubmit() {
@@ -87,15 +100,28 @@ async function onSubmit() {
     const payload = { ...form.value };
     if (!payload.fecha_nacimiento) delete payload.fecha_nacimiento;
 
+    let idMascota;
     if (editingId.value) {
       await mascotaApi.updateMascota(editingId.value, payload);
+      idMascota = editingId.value;
       successMsg.value = '✅ Mascota actualizada';
     } else {
-      await mascotaApi.createMascota(payload);
+      const result = await mascotaApi.createMascota(payload);
+      idMascota = result.mascota?.id_mascota;
       successMsg.value = '✅ Mascota registrada';
     }
+
+    if (selectedFile.value && idMascota) {
+      try {
+        await mascotaApi.uploadMascotaFoto(idMascota, selectedFile.value);
+      } catch {
+        successMsg.value += ' (la foto no pudo subirse, inténtalo de nuevo)';
+      }
+    }
+
     showForm.value = false;
     editingId.value = null;
+    selectedFile.value = null;
     await loadMascotas();
   } catch (err) {
     errorMsg.value = err.response?.data?.error || err.response?.data?.message || 'Error al guardar';
@@ -219,6 +245,16 @@ onMounted(loadMascotas);
             <span class="field-hint">Condiciones de salud o comportamiento que el groomer debe conocer</span>
           </div>
           <div class="field field--full">
+            <label>Foto de la mascota</label>
+            <input
+              type="file"
+              accept="image/*"
+              class="file-input"
+              @change="e => selectedFile = e.target.files[0] || null"
+            />
+            <span class="field-hint">Opcional · JPG, PNG, WEBP · máx. 5 MB</span>
+          </div>
+          <div class="field field--full">
             <label>Notas adicionales</label>
             <textarea v-model="form.notas" rows="2" placeholder="Cualquier otra información relevante..." />
           </div>
@@ -245,6 +281,7 @@ onMounted(loadMascotas);
         <table>
           <thead>
             <tr>
+              <th></th>
               <th>Nombre</th>
               <th>Especie</th>
               <th>Raza</th>
@@ -255,6 +292,9 @@ onMounted(loadMascotas);
           </thead>
           <tbody>
             <tr v-for="m in mascotas" :key="m.id_mascota">
+              <td class="avatar-cell">
+                <img :src="mascotaFotoSrc(m)" :alt="m.nombre" class="mascota-avatar" />
+              </td>
               <td><b>{{ m.nombre }}</b></td>
               <td>{{ m.especie || '—' }}</td>
               <td>{{ m.raza || '—' }}</td>
@@ -304,6 +344,17 @@ onMounted(loadMascotas);
 }
 .field--full { grid-column: 1 / -1; }
 .field-hint { font-size: 0.76rem; color: var(--color-text-soft); margin-top: 0.2rem; display: block; }
+.file-input { font-size: 0.88rem; }
+
+.avatar-cell { width: 44px; padding-right: 0; }
+.mascota-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid var(--color-card-border);
+  display: block;
+}
 
 .form-actions {
   display: flex;

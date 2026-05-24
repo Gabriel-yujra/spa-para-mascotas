@@ -90,10 +90,30 @@ async function getMascotaById(idMascota) {
   return mascota;
 }
 
+/**
+ * Actualiza foto_url de una mascota.
+ * Para CLIENTE valida que la mascota le pertenezca.
+ * Para STAFF solo comprueba que exista.
+ * rolName: valor raw del JWT (ej. 'cliente', 'admin').
+ */
+async function uploadFotoMascota(idUsuario, rolName, idMascota, fotoUrl) {
+  if (rolName === 'cliente') {
+    const idCliente = await resolverIdCliente(idUsuario);
+    await assertMascotaDelCliente(idMascota, idCliente);
+  } else {
+    const mascota = await mascotaModel.findMascotaById(idMascota);
+    if (!mascota) throw new ServiceError(404, 'Mascota no encontrada');
+  }
+  const actualizada = await mascotaModel.updateMascota(idMascota, { foto_url: fotoUrl });
+  if (!actualizada) throw new ServiceError(500, 'No se pudo actualizar la foto');
+  return actualizada;
+}
+
 module.exports = {
   getMascotasByUsuario,
   getMascotaById,
   createMascotaForUsuario,
   updateMascotaForUsuario,
   deleteMascotaForUsuario,
+  uploadFotoMascota,
 };

@@ -4,6 +4,16 @@ import { useRoute, useRouter } from 'vue-router';
 import { groomingApi } from '@/api/groomingApi';
 import AppCard       from '@/components/AppCard.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
+import perroDefault from '@/assets/perro-default.svg';
+import gatoDefault  from '@/assets/gato-default.svg';
+
+const BACKEND_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api').replace(/\/api\/?$/, '');
+function mascotaFotoSrc(m) {
+  if (m?.foto_url) return `${BACKEND_URL}${m.foto_url}`;
+  if (m?.especie === 'perro') return perroDefault;
+  if (m?.especie === 'gato')  return gatoDefault;
+  return perroDefault;
+}
 
 const route  = useRoute();
 const router = useRouter();
@@ -149,6 +159,10 @@ onMounted(loadFicha);
 
       <!-- ── Datos de la mascota ──────────────────────────────── -->
       <AppCard title="Mascota">
+        <div class="mascota-header">
+          <img :src="mascotaFotoSrc(mascota)" :alt="mascota?.nombre" class="mascota-avatar-lg" />
+          <span class="mascota-nombre-lg">{{ mascota?.nombre || '—' }}</span>
+        </div>
         <div class="detail-grid">
           <div class="detail-item">
             <span class="detail-label">Nombre</span>
@@ -314,6 +328,23 @@ onMounted(loadFicha);
   font-weight: 700;
   font-size: 0.95rem;
 }
+
+.mascota-header {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+.mascota-avatar-lg {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--color-card-border);
+  background: var(--color-bg-soft);
+  flex-shrink: 0;
+}
+.mascota-nombre-lg { font-size: 1.1rem; font-weight: 800; color: var(--color-text); }
 
 .detail-grid {
   display: grid;

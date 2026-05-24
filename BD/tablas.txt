@@ -1,3 +1,41 @@
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- TOC entry 2 (class 3079 OID 16389)
+-- Name: pgcrypto; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
+
+
+--
+-- TOC entry 5265 (class 0 OID 0)
+-- Dependencies: 2
+-- Name: EXTENSION pgcrypto; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION pgcrypto IS 'cryptographic functions';
+
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- TOC entry 245 (class 1259 OID 16962)
+-- Name: audit_log; Type: TABLE; Schema: public; Owner: postgres
+--
+
 CREATE TABLE public.audit_log (
     id_log uuid DEFAULT gen_random_uuid() NOT NULL,
     id_usuario uuid,
@@ -12,6 +50,7 @@ CREATE TABLE public.audit_log (
 ALTER TABLE public.audit_log OWNER TO postgres;
 
 --
+-- TOC entry 241 (class 1259 OID 16873)
 -- Name: bloqueos_agenda; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -27,6 +66,7 @@ CREATE TABLE public.bloqueos_agenda (
 ALTER TABLE public.bloqueos_agenda OWNER TO postgres;
 
 --
+-- TOC entry 238 (class 1259 OID 16798)
 -- Name: cajas; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -42,6 +82,7 @@ CREATE TABLE public.cajas (
 ALTER TABLE public.cajas OWNER TO postgres;
 
 --
+-- TOC entry 242 (class 1259 OID 16904)
 -- Name: checklist_items; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -55,6 +96,7 @@ CREATE TABLE public.checklist_items (
 ALTER TABLE public.checklist_items OWNER TO postgres;
 
 --
+-- TOC entry 229 (class 1259 OID 16614)
 -- Name: cita_movimientos; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -73,6 +115,7 @@ CREATE TABLE public.cita_movimientos (
 ALTER TABLE public.cita_movimientos OWNER TO postgres;
 
 --
+-- TOC entry 230 (class 1259 OID 16639)
 -- Name: cita_trabajadores; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -88,6 +131,7 @@ CREATE TABLE public.cita_trabajadores (
 ALTER TABLE public.cita_trabajadores OWNER TO postgres;
 
 --
+-- TOC entry 228 (class 1259 OID 16561)
 -- Name: citas; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -112,6 +156,7 @@ CREATE TABLE public.citas (
 ALTER TABLE public.citas OWNER TO postgres;
 
 --
+-- TOC entry 222 (class 1259 OID 16461)
 -- Name: clientes; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -129,6 +174,7 @@ CREATE TABLE public.clientes (
 ALTER TABLE public.clientes OWNER TO postgres;
 
 --
+-- TOC entry 237 (class 1259 OID 16777)
 -- Name: detalle_pedido_clientes; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -144,6 +190,7 @@ CREATE TABLE public.detalle_pedido_clientes (
 ALTER TABLE public.detalle_pedido_clientes OWNER TO postgres;
 
 --
+-- TOC entry 244 (class 1259 OID 16935)
 -- Name: ficha_grooming_checklist; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -159,6 +206,7 @@ CREATE TABLE public.ficha_grooming_checklist (
 ALTER TABLE public.ficha_grooming_checklist OWNER TO postgres;
 
 --
+-- TOC entry 231 (class 1259 OID 16659)
 -- Name: fichas_grooming; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -172,13 +220,15 @@ CREATE TABLE public.fichas_grooming (
     fecha_cierre timestamp with time zone,
     temperatura numeric(5,2),
     notas_internas text,
-    consumido_inventario boolean DEFAULT false NOT NULL
+    consumido_inventario boolean DEFAULT false NOT NULL,
+    recomendaciones text
 );
 
 
 ALTER TABLE public.fichas_grooming OWNER TO postgres;
 
 --
+-- TOC entry 234 (class 1259 OID 16713)
 -- Name: fichas_grooming_insumos; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -193,6 +243,7 @@ CREATE TABLE public.fichas_grooming_insumos (
 ALTER TABLE public.fichas_grooming_insumos OWNER TO postgres;
 
 --
+-- TOC entry 232 (class 1259 OID 16678)
 -- Name: fotos_grooming; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -208,6 +259,7 @@ CREATE TABLE public.fotos_grooming (
 ALTER TABLE public.fotos_grooming OWNER TO postgres;
 
 --
+-- TOC entry 226 (class 1259 OID 16523)
 -- Name: mascota_vacunas; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -224,6 +276,7 @@ CREATE TABLE public.mascota_vacunas (
 ALTER TABLE public.mascota_vacunas OWNER TO postgres;
 
 --
+-- TOC entry 224 (class 1259 OID 16497)
 -- Name: mascotas; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -239,13 +292,16 @@ CREATE TABLE public.mascotas (
     notas text,
     alergias text,
     restricciones text,
-    temperamento text
+    temperamento text,
+    activo boolean DEFAULT true NOT NULL,
+    especie text
 );
 
 
 ALTER TABLE public.mascotas OWNER TO postgres;
 
 --
+-- TOC entry 235 (class 1259 OID 16733)
 -- Name: opiniones; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -262,6 +318,7 @@ CREATE TABLE public.opiniones (
 ALTER TABLE public.opiniones OWNER TO postgres;
 
 --
+-- TOC entry 240 (class 1259 OID 16853)
 -- Name: pagos_empleados; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -280,6 +337,7 @@ CREATE TABLE public.pagos_empleados (
 ALTER TABLE public.pagos_empleados OWNER TO postgres;
 
 --
+-- TOC entry 236 (class 1259 OID 16757)
 -- Name: pedidos_clientes; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -295,6 +353,7 @@ CREATE TABLE public.pedidos_clientes (
 ALTER TABLE public.pedidos_clientes OWNER TO postgres;
 
 --
+-- TOC entry 233 (class 1259 OID 16697)
 -- Name: productos; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -316,6 +375,7 @@ CREATE TABLE public.productos (
 ALTER TABLE public.productos OWNER TO postgres;
 
 --
+-- TOC entry 220 (class 1259 OID 16427)
 -- Name: roles; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -329,6 +389,7 @@ CREATE TABLE public.roles (
 ALTER TABLE public.roles OWNER TO postgres;
 
 --
+-- TOC entry 243 (class 1259 OID 16914)
 -- Name: servicio_checklist_items; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -342,6 +403,7 @@ CREATE TABLE public.servicio_checklist_items (
 ALTER TABLE public.servicio_checklist_items OWNER TO postgres;
 
 --
+-- TOC entry 227 (class 1259 OID 16545)
 -- Name: servicios; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -362,6 +424,7 @@ CREATE TABLE public.servicios (
 ALTER TABLE public.servicios OWNER TO postgres;
 
 --
+-- TOC entry 223 (class 1259 OID 16478)
 -- Name: trabajadores; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -380,6 +443,7 @@ CREATE TABLE public.trabajadores (
 ALTER TABLE public.trabajadores OWNER TO postgres;
 
 --
+-- TOC entry 239 (class 1259 OID 16812)
 -- Name: transacciones; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -405,6 +469,7 @@ CREATE TABLE public.transacciones (
 ALTER TABLE public.transacciones OWNER TO postgres;
 
 --
+-- TOC entry 246 (class 1259 OID 16983)
 -- Name: user_activation_tokens; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -421,6 +486,7 @@ CREATE TABLE public.user_activation_tokens (
 ALTER TABLE public.user_activation_tokens OWNER TO postgres;
 
 --
+-- TOC entry 221 (class 1259 OID 16439)
 -- Name: usuarios; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -447,6 +513,7 @@ CREATE TABLE public.usuarios (
 ALTER TABLE public.usuarios OWNER TO postgres;
 
 --
+-- TOC entry 225 (class 1259 OID 16513)
 -- Name: vacunas; Type: TABLE; Schema: public; Owner: postgres
 --
 

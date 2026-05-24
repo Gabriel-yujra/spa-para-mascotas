@@ -118,9 +118,9 @@ async function updateMascota(id_mascota, fields, client = db) {
 
   values.push(id_mascota);
   const { rows } = await client.query(
-    `UPDATE mascotas
+    `UPDATE mascotas m
         SET ${sets.join(', ')}
-      WHERE id_mascota = $${idx}
+      WHERE m.id_mascota = $${idx}
       RETURNING ${CAMPOS_MASCOTA}`,
     values
   );
