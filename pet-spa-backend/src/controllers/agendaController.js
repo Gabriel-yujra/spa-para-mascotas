@@ -4,6 +4,7 @@
 
 const agendaService = require('../services/agendaService');
 const bloqueoAgendaModel = require('../models/bloqueoAgendaModel');
+const trabajadorModel = require('../models/trabajadorModel');
 const auditLogModel = require('../models/auditLogModel');
 const { isUuid, isNonEmptyString } = require('../utils/validationUtils');
 
@@ -135,6 +136,20 @@ exports.listBloqueos = async (req, res) => {
   } catch (err) {
     console.error('[listBloqueos]', err);
     return res.status(500).json({ error: 'Error al listar bloqueos', message: err.message });
+  }
+};
+
+// ============================================================
+// GET /api/agenda/groomers      (staff: admin, jefe, recepcion)
+// Lista todos los groomers activos para selección en formularios de bloqueos.
+// ============================================================
+exports.listGroomers = async (req, res) => {
+  try {
+    const groomers = await trabajadorModel.listGroomersActivos();
+    return res.status(200).json({ groomers });
+  } catch (err) {
+    console.error('[listGroomers]', err);
+    return res.status(500).json({ error: 'Error al listar groomers', message: err.message });
   }
 };
 

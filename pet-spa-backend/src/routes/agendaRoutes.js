@@ -44,6 +44,15 @@ module.exports = (app) => {
     agendaController.getGroomersDisponibles
   );
 
+  // ---- Todos los groomers activos (para selector en bloqueos / reprogramación) ----
+  app.get(
+    '/api/agenda/groomers',
+    authRequired,
+    mustNotForcePasswordChange,
+    requireRole(STAFF_AGENDA),
+    agendaController.listGroomers
+  );
+
   // ---- Bloqueos: lectura para staff ----
   app.get(
     '/api/agenda/bloqueos',

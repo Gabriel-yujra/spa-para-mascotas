@@ -44,6 +44,10 @@ function logout() {
             v-if="auth.role === ROLES.RECEPCION || isAdminLike(auth.role)"
             to="/recepcion/clientes"
           >Clientes</router-link>
+          <router-link
+            v-if="auth.role === ROLES.RECEPCION || isAdminLike(auth.role)"
+            to="/recepcion/bloqueos-agenda"
+          >Bloqueos</router-link>
 
           <!-- Admin / Jefe -->
           <router-link v-if="isAdminLike(auth.role)" to="/admin/empleados">Empleados</router-link>

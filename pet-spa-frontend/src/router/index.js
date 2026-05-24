@@ -27,8 +27,9 @@ import RecepcionClienteDetalleView from '@/views/Recepcion/RecepcionClienteDetal
 import GroomerAgendaView from '@/views/Groomer/GroomerAgendaView.vue';
 import GroomerFichaView  from '@/views/Groomer/GroomerFichaView.vue';
 
-import RecepcionFichaGroomingView from '@/views/Recepcion/RecepcionFichaGroomingView.vue';
-import ClienteFichaGroomingView   from '@/views/Cliente/ClienteFichaGroomingView.vue';
+import RecepcionFichaGroomingView    from '@/views/Recepcion/RecepcionFichaGroomingView.vue';
+import RecepcionBloqueosAgendaView  from '@/views/Recepcion/RecepcionBloqueosAgendaView.vue';
+import ClienteFichaGroomingView     from '@/views/Cliente/ClienteFichaGroomingView.vue';
 
 const routes = [
   // Públicas
@@ -114,6 +115,14 @@ const routes = [
     path: '/recepcion/citas/:idCita/ficha',
     name: 'recepcion-ficha-grooming',
     component: RecepcionFichaGroomingView,
+    meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.JEFE, ROLES.RECEPCION] },
+  },
+
+  // Recepción / Admin / Jefe: gestión de bloqueos de agenda
+  {
+    path: '/recepcion/bloqueos-agenda',
+    name: 'recepcion-bloqueos-agenda',
+    component: RecepcionBloqueosAgendaView,
     meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.JEFE, ROLES.RECEPCION] },
   },
 

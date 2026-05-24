@@ -16,10 +16,11 @@ const servicios = ref([]);
 const slots     = ref([]);
 
 // ── Form selections ───────────────────────────────────────────
-const selectedMascota  = ref('');
-const selectedServicio = ref('');
-const selectedFecha    = ref('');
-const selectedSlot     = ref(null);   // { hora_inicio, hora_fin }
+const selectedMascota          = ref('');
+const selectedServicio         = ref('');
+const selectedFecha            = ref('');
+const selectedSlot             = ref(null);   // { hora_inicio, hora_fin, groomers_disponibles }
+const selectedGroomerPreferido = ref('');
 
 // ── UI state ──────────────────────────────────────────────────
 const loadingInit  = ref(false);
@@ -52,8 +53,14 @@ function slotBadgeClass(s) {
 watch([selectedMascota, selectedServicio, selectedFecha], ([m, s, f]) => {
   slots.value = [];
   selectedSlot.value = null;
+  selectedGroomerPreferido.value = '';
   slotsError.value = '';
   if (m && s && f) fetchSlots();
+});
+
+// Resetear groomer preferido cuando el cliente cambia de slot
+watch(selectedSlot, () => {
+  selectedGroomerPreferido.value = '';
 });
 
 // ── Load mascotas + servicios on mount ────────────────────────
@@ -110,19 +117,24 @@ async function onSubmit() {
   }
   submitting.value = true;
   try {
-    await citaApi.crearCita({
+    const payload = {
       id_mascota:  selectedMascota.value,
       id_servicio: selectedServicio.value,
       fecha_cita:  selectedFecha.value,
       hora_inicio: selectedSlot.value.hora_inicio,
-    });
+    };
+    if (selectedGroomerPreferido.value) {
+      payload.id_trabajador_preferido = selectedGroomerPreferido.value;
+    }
+    await citaApi.crearCita(payload);
     successMsg.value = '✅ ¡Cita solicitada! Queda pendiente de confirmación por recepción.';
     // Reset form
-    selectedMascota.value  = '';
-    selectedServicio.value = '';
-    selectedFecha.value    = '';
-    selectedSlot.value     = null;
-    slots.value            = [];
+    selectedMascota.value          = '';
+    selectedServicio.value         = '';
+    selectedFecha.value            = '';
+    selectedSlot.value             = null;
+    selectedGroomerPreferido.value = '';
+    slots.value                    = [];
   } catch (err) {
     errorMsg.value = err.response?.data?.error || err.response?.data?.message || 'Error al solicitar la cita';
   } finally {
@@ -245,6 +257,30 @@ onMounted(loadInit);
           </div>
         </div>
 
+        <!-- Groomer preferido (opcional) -->
+        <div
+          v-if="selectedSlot?.groomers_disponibles?.length"
+          class="field groomer-pref-field"
+        >
+          <label>
+            Groomer preferido
+            <span class="muted">(opcional)</span>
+          </label>
+          <select v-model="selectedGroomerPreferido">
+            <option value="">Sin preferencia (asignación automática)</option>
+            <option
+              v-for="g in selectedSlot.groomers_disponibles"
+              :key="g.id_trabajador"
+              :value="g.id_trabajador"
+            >
+              {{ g.nombre }}{{ g.especialidad ? ` · ${g.especialidad}` : '' }}
+            </option>
+          </select>
+          <small class="muted">
+            La asignación final queda sujeta a la disponibilidad al momento de confirmar.
+          </small>
+        </div>
+
         <div class="form-actions">
           <PrimaryButton :loading="submitting" @click="onSubmit">
             {{ submitting ? 'Enviando…' : 'Confirmar solicitud' }}
@@ -301,5 +337,6 @@ onMounted(loadInit);
 .summary-row { display: flex; gap: 0.75rem; font-size: 0.95rem; }
 .summary-label { font-weight: 700; color: var(--color-text-soft); min-width: 80px; }
 
+.groomer-pref-field { margin-top: 0.25rem; margin-bottom: 0.5rem; }
 .form-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
 </style>

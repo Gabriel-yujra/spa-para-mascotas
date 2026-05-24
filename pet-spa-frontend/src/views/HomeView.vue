@@ -78,6 +78,7 @@ const auth = useAuthStore();
         <ul class="quick">
           <li><router-link to="/recepcion/citas">📅 Bandeja de citas</router-link></li>
           <li><router-link to="/recepcion/clientes">👤 Clientes</router-link></li>
+          <li><router-link to="/recepcion/bloqueos-agenda">🚫 Bloqueos de agenda</router-link></li>
         </ul>
       </AppCard>
 
