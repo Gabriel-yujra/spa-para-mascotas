@@ -8,7 +8,9 @@ const citaModel            = require('../models/citaModel');
 const groomingFichaModel   = require('../models/groomingFichaModel');
 const groomingChecklistModel = require('../models/groomingChecklistModel');
 const mascotaModel         = require('../models/mascotaModel');
+const userModel            = require('../models/userModel');
 const { ESTADOS, canTransition } = require('../utils/citaEstados');
+const { sendListoParaRecoger } = require('../config/mail');
 
 class ServiceError extends Error {
   constructor(status, message) { super(message); this.status = status; }
@@ -205,6 +207,25 @@ async function updateFichaFromGroomer(idUsuario, idCita, data) {
     );
   }
 
+  if (nuevo_estado_global === ESTADOS.COMPLETADA) {
+    let realizados = 0;
+    if (hasChecklist) {
+      realizados = checklist.filter((i) => i.realizado === true).length;
+    } else {
+      const existingFicha = await groomingFichaModel.getFichaByCitaId(idCita);
+      if (existingFicha) {
+        const savedItems = await groomingChecklistModel.getChecklistByFichaId(existingFicha.id_ficha);
+        realizados = savedItems.filter((i) => i.realizado === true).length;
+      }
+    }
+    if (realizados < 1) {
+      throw new ServiceError(
+        422,
+        'No puedes cerrar la ficha sin marcar al menos 1 ítem del checklist'
+      );
+    }
+  }
+
   if (nuevo_estado_global === ESTADOS.COMPLETADA && !fichaFields.fecha_cierre) {
     fichaFields.fecha_cierre = new Date().toISOString();
   }
@@ -231,6 +252,28 @@ async function updateFichaFromGroomer(idUsuario, idCita, data) {
     }
 
     await client.query('COMMIT');
+
+    if (nuevo_estado_global === ESTADOS.COMPLETADA) {
+      // Fire-and-forget: never block the response on mail delivery
+      (async () => {
+        try {
+          const usuario = await userModel.findUserById(cita.id_usuario_cliente);
+          if (usuario?.email) {
+            await sendListoParaRecoger({
+              clienteEmail:   usuario.email,
+              clienteNombre:  usuario.nombre,
+              mascotaNombre:  cita.mascota_nombre  || 'Tu mascota',
+              servicioNombre: cita.servicio_nombre || 'el servicio',
+              observaciones:  fichaFields.observaciones  ?? ficha?.observaciones,
+              recomendaciones: fichaFields.recomendaciones ?? ficha?.recomendaciones,
+            });
+          }
+        } catch (mailErr) {
+          console.error('[groomingService] Error enviando correo listo-para-recoger:', mailErr.message);
+        }
+      })();
+    }
+
     return { ficha, cita: citaActualizada };
   } catch (err) {
     await client.query('ROLLBACK');

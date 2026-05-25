@@ -140,6 +140,15 @@ module.exports = (app) => {
   // IMPORTANTE: registrar esta ruta DESPUÉS de '/api/citas/mis-citas',
   // '/api/citas/pendientes' y '/api/citas/asignadas' para que esos paths
   // específicos no caigan en ':id'.
+
+  app.post(
+    '/api/citas/:id/pagar-cliente',
+    authRequired,
+    mustNotForcePasswordChange,
+    requireRole([ROLES.CLIENTE]),
+    citaController.pagarComoCliente
+  );
+
   app.get(
     '/api/citas/:id',
     authRequired,

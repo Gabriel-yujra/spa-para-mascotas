@@ -84,12 +84,19 @@ module.exports = (app) => {
     requireRole(CAJA_ROLES),
     async (req, res, next) => {
       try {
-        const { tipo, monto, descripcion, id_referencia } = req.body;
+        const { tipo, monto, descripcion, id_referencia, metodo_pago } = req.body;
         if (!tipo || !['INGRESO', 'EGRESO'].includes(tipo)) {
           return res.status(400).json({ error: 'tipo debe ser INGRESO o EGRESO' });
         }
         if (!monto || parseFloat(monto) <= 0) {
           return res.status(400).json({ error: 'monto debe ser mayor a 0' });
+        }
+        const METODOS_VALIDOS = ['EFECTIVO', 'QR', 'TRANSFERENCIA'];
+        if (tipo === 'INGRESO' && !METODOS_VALIDOS.includes(metodo_pago)) {
+          return res.status(400).json({ error: "metodo_pago es requerido para INGRESO. Valores: 'EFECTIVO', 'QR', 'TRANSFERENCIA'" });
+        }
+        if (metodo_pago && !METODOS_VALIDOS.includes(metodo_pago)) {
+          return res.status(400).json({ error: "metodo_pago debe ser 'EFECTIVO', 'QR' o 'TRANSFERENCIA'" });
         }
         const caja = await cajaModel.findCajaActiva();
         if (!caja) return res.status(409).json({ error: 'No hay caja activa. Abra una caja primero.' });
@@ -100,6 +107,7 @@ module.exports = (app) => {
           descripcion,
           id_usuario_solicita: req.user.id_usuario,
           id_referencia: id_referencia || null,
+          metodo_pago: metodo_pago || null,
         });
         await auditLogModel.logAction({
           id_usuario: req.user.id_usuario,

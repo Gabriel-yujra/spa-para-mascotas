@@ -46,4 +46,10 @@ export const citaApi = {
   noAsistio(id) {
     return http.patch(`/citas/${id}/no-asistio`).then((r) => r.data);
   },
+
+  // POST /api/citas/:id/pagar-cliente
+  // payload: { metodo_pago: 'EFECTIVO'|'QR'|'TRANSFERENCIA', opinion?: { calificacion, comentario } }
+  pagarCita(id, payload) {
+    return http.post(`/citas/${id}/pagar-cliente`, payload).then((r) => r.data);
+  },
 };

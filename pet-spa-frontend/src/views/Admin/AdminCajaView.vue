@@ -21,7 +21,13 @@ const formAbrir = ref({ nombre: '', descripcion: '' });
 const showAbrirForm = ref(false);
 
 // Nueva transacción
-const formTx = ref({ tipo: 'INGRESO', monto: '', descripcion: '' });
+const formTx = ref({ tipo: 'INGRESO', monto: '', descripcion: '', metodo_pago: 'EFECTIVO' });
+
+const METODOS_PAGO = [
+  { value: 'EFECTIVO',      label: 'Efectivo' },
+  { value: 'QR',            label: 'QR' },
+  { value: 'TRANSFERENCIA', label: 'Transferencia' },
+];
 const showTxForm = ref(false);
 
 const puedeAdministrar = computed(() => isAdminLike(auth.role));
@@ -78,10 +84,11 @@ async function crearTransaccion() {
       tipo: formTx.value.tipo,
       monto: parseFloat(formTx.value.monto),
       descripcion: formTx.value.descripcion,
+      metodo_pago: formTx.value.tipo === 'INGRESO' ? formTx.value.metodo_pago : undefined,
     });
     successMsg.value = 'Transacción registrada';
     showTxForm.value = false;
-    formTx.value = { tipo: 'INGRESO', monto: '', descripcion: '' };
+    formTx.value = { tipo: 'INGRESO', monto: '', descripcion: '', metodo_pago: 'EFECTIVO' };
     await load();
   } catch (err) {
     errorMsg.value = err.response?.data?.error || 'Error al registrar transacción';
@@ -161,6 +168,15 @@ onMounted(load);
             <input v-model.number="formTx.monto" type="number" min="0.01" step="0.01" placeholder="0.00" />
           </div>
         </div>
+        <div v-if="formTx.tipo === 'INGRESO'" class="field">
+          <label>Método de pago *</label>
+          <div class="metodo-radios">
+            <label v-for="m in METODOS_PAGO" :key="m.value" class="radio-label">
+              <input type="radio" v-model="formTx.metodo_pago" :value="m.value" />
+              {{ m.label }}
+            </label>
+          </div>
+        </div>
         <div class="field">
           <label>Descripción</label>
           <input v-model="formTx.descripcion" placeholder="Cobro servicio, compra insumo..." />
@@ -181,6 +197,7 @@ onMounted(load);
               <tr>
                 <th>Tipo</th>
                 <th>Monto</th>
+                <th>Método</th>
                 <th>Descripción</th>
                 <th>Usuario</th>
                 <th>Fecha</th>
@@ -195,6 +212,10 @@ onMounted(load);
                 </td>
                 <td :class="t.tipo === 'INGRESO' ? 'green' : 'red'">
                   {{ t.tipo === 'INGRESO' ? '+' : '-' }}Bs {{ Number(t.monto).toFixed(2) }}
+                </td>
+                <td>
+                  <span v-if="t.metodo_pago" class="badge metodo-badge">{{ t.metodo_pago }}</span>
+                  <span v-else class="muted">—</span>
                 </td>
                 <td class="muted">{{ t.descripcion || '—' }}</td>
                 <td>{{ t.nombre_usuario || '—' }}</td>
@@ -234,4 +255,13 @@ onMounted(load);
 
 .msg-error { color: var(--color-danger); }
 .msg-ok    { color: #16a34a; }
+
+.metodo-radios { display: flex; gap: 1.25rem; flex-wrap: wrap; padding-top: 0.25rem; }
+.radio-label {
+  display: flex; align-items: center; gap: 0.4rem;
+  font-weight: 600; cursor: pointer; font-size: 0.92rem;
+}
+.radio-label input { accent-color: var(--color-primary); width: 16px; height: 16px; }
+
+.metodo-badge { background: #eff6ff; color: #1d4ed8; font-size: 0.78rem; }
 </style>

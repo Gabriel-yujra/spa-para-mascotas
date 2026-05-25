@@ -26,17 +26,17 @@ async function cerrarCaja(id_caja) {
   return rows[0] || null;
 }
 
-async function createTransaccion({ id_caja, tipo, monto, descripcion, id_usuario_solicita, id_referencia = null }, client = db) {
+async function createTransaccion({ id_caja, tipo, monto, descripcion, id_usuario_solicita, id_referencia = null, metodo_pago = null }, client = db) {
   const { rows } = await client.query(
     `INSERT INTO transacciones
        (id_caja, tipo, monto, descripcion, id_usuario_solicita, id_referencia,
         estado_admin, estado_jefe, estado_global,
-        fecha_aprobacion_admin, fecha_aprobacion_jefe)
+        fecha_aprobacion_admin, fecha_aprobacion_jefe, metodo_pago)
      VALUES ($1, $2, $3, $4, $5, $6,
              'aprobada', 'aprobada', 'aprobada',
-             NOW(), NOW())
+             NOW(), NOW(), $7)
      RETURNING *`,
-    [id_caja, tipo, parseFloat(monto), descripcion || null, id_usuario_solicita, id_referencia]
+    [id_caja, tipo, parseFloat(monto), descripcion || null, id_usuario_solicita, id_referencia, metodo_pago || null]
   );
   const delta = tipo === 'INGRESO' ? parseFloat(monto) : -parseFloat(monto);
   await client.query(

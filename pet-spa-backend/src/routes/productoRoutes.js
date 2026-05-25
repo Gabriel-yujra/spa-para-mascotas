@@ -5,6 +5,7 @@ const authRequired = require('../middlewares/authRequired');
 const mustNotForcePasswordChange = require('../middlewares/mustNotForcePasswordChange');
 const requireRole = require('../middlewares/requireRole');
 const { ROLES } = require('../utils/rolesUtils');
+const { enviarAlertaStockBajo, getProductosConStockBajo } = require('../services/inventarioAlertaService');
 
 const ADMIN_ROLES = [ROLES.ADMIN, ROLES.JEFE];
 
@@ -49,7 +50,29 @@ module.exports = (app) => {
           ip_address: req.ip,
           user_agent: req.headers['user-agent'],
         });
+        enviarAlertaStockBajo(); // fire-and-forget
         return res.status(201).json({ producto });
+      } catch (err) { next(err); }
+    }
+  );
+
+  // POST /api/productos/alertas-stock  — manual trigger (ADMIN / JEFE)
+  app.post(
+    '/api/productos/alertas-stock',
+    authRequired,
+    mustNotForcePasswordChange,
+    requireRole(ADMIN_ROLES),
+    async (req, res, next) => {
+      try {
+        const productos = await getProductosConStockBajo();
+        if (productos.length === 0) {
+          return res.status(200).json({ mensaje: 'No hay productos con stock bajo. No se envió ningún correo.' });
+        }
+        await enviarAlertaStockBajo();
+        return res.status(200).json({
+          mensaje: `Alerta enviada. ${productos.length} producto(s) con stock bajo.`,
+          productos,
+        });
       } catch (err) { next(err); }
     }
   );
@@ -71,6 +94,7 @@ module.exports = (app) => {
           ip_address: req.ip,
           user_agent: req.headers['user-agent'],
         });
+        enviarAlertaStockBajo(); // fire-and-forget
         return res.status(200).json({ producto });
       } catch (err) { next(err); }
     }

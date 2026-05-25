@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { groomingApi } from '@/api/groomingApi';
 import AppCard       from '@/components/AppCard.vue';
@@ -134,6 +134,12 @@ async function guardar() {
     saving.value = false;
   }
 }
+
+const checklistWarning = computed(() => {
+  if (form.value.nuevo_estado_global !== 'completada') return '';
+  const hasDone = checklist.value.some((i) => i.realizado);
+  return hasDone ? '' : 'Debes marcar al menos 1 ítem del checklist antes de completar la ficha.';
+});
 
 onMounted(loadFicha);
 </script>
@@ -285,8 +291,10 @@ onMounted(loadFicha);
           </div>
         </div>
 
+        <p v-if="checklistWarning" class="checklist-warning">{{ checklistWarning }}</p>
+
         <div class="form-actions">
-          <PrimaryButton @click="guardar" :loading="saving">Guardar cambios</PrimaryButton>
+          <PrimaryButton @click="guardar" :loading="saving" :disabled="!!checklistWarning">Guardar cambios</PrimaryButton>
         </div>
       </AppCard>
 
@@ -425,4 +433,15 @@ onMounted(loadFicha);
 }
 
 .center { text-align: center; padding: 2rem; }
+
+.checklist-warning {
+  margin: 0.5rem 0 0;
+  padding: 0.55rem 0.85rem;
+  background: #fef3c7;
+  border: 1px solid #fbbf24;
+  border-radius: 8px;
+  color: #92400e;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
 </style>

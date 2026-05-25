@@ -9,8 +9,8 @@ async function findByCita(id_cita) {
   return rows[0] || null;
 }
 
-async function createOpinion({ id_cita, id_cliente, calificacion, comentario }) {
-  const { rows } = await db.query(
+async function createOpinion({ id_cita, id_cliente, calificacion, comentario }, client = db) {
+  const { rows } = await client.query(
     `INSERT INTO opiniones (id_cita, id_cliente, calificacion, comentario)
      VALUES ($1, $2, $3, $4)
      RETURNING *`,

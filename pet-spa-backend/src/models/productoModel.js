@@ -74,4 +74,20 @@ async function setProductoEstado(id_producto, estado) {
   return rows[0] || null;
 }
 
-module.exports = { listProductos, findProductoById, createProducto, updateProducto, setProductoEstado };
+/**
+ * Returns all active products whose current stock is at or below their minimum.
+ * Ordered by severity: lowest ratio first.
+ */
+async function getProductosConStockBajo() {
+  const { rows } = await db.query(
+    `SELECT id_producto, nombre, categoria, stock_unidades, stock_minimo, unidad_presentacion
+       FROM productos
+      WHERE estado = 'disponible'
+        AND stock_minimo > 0
+        AND stock_unidades <= stock_minimo
+      ORDER BY (stock_unidades::float / stock_minimo) ASC, nombre ASC`
+  );
+  return rows;
+}
+
+module.exports = { listProductos, findProductoById, createProducto, updateProducto, setProductoEstado, getProductosConStockBajo };
