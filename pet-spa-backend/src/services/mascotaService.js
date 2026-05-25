@@ -4,6 +4,7 @@
 // Usa transacción en operaciones que podrían involucrar varias tablas en el futuro.
 const clienteModel = require('../models/clienteModel');
 const mascotaModel = require('../models/mascotaModel');
+const mascotaVacunaModel = require('../models/mascotaVacunaModel');
 
 class ServiceError extends Error {
   constructor(status, message) { super(message); this.status = status; }
@@ -109,6 +110,55 @@ async function uploadFotoMascota(idUsuario, rolName, idMascota, fotoUrl) {
   return actualizada;
 }
 
+// ──────────────────────────────────────────────
+// Vacunas
+// ──────────────────────────────────────────────
+
+async function getVacunasCatalogo() {
+  return mascotaVacunaModel.findAllVacunasCatalogo();
+}
+
+async function getVacunasByMascota(idUsuario, rolName, idMascota) {
+  if (rolName === 'cliente') {
+    const idCliente = await resolverIdCliente(idUsuario);
+    await assertMascotaDelCliente(idMascota, idCliente);
+  } else {
+    const mascota = await mascotaModel.findMascotaById(idMascota);
+    if (!mascota) throw new ServiceError(404, 'Mascota no encontrada');
+  }
+  return mascotaVacunaModel.findVacunasByMascota(idMascota);
+}
+
+async function createVacunaForMascota(idUsuario, rolName, idMascota, data) {
+  if (rolName === 'cliente') {
+    const idCliente = await resolverIdCliente(idUsuario);
+    await assertMascotaDelCliente(idMascota, idCliente);
+  } else {
+    const mascota = await mascotaModel.findMascotaById(idMascota);
+    if (!mascota) throw new ServiceError(404, 'Mascota no encontrada');
+  }
+  const { id_vacuna, fecha_aplicacion, fecha_proxima, observaciones } = data || {};
+  if (!id_vacuna)        throw new ServiceError(400, 'id_vacuna es obligatorio');
+  if (!fecha_aplicacion) throw new ServiceError(400, 'fecha_aplicacion es obligatoria');
+
+  return mascotaVacunaModel.createVacunaForMascota({
+    id_mascota: idMascota,
+    id_vacuna,
+    fecha_aplicacion,
+    fecha_proxima:  fecha_proxima  || null,
+    observaciones:  observaciones  || null,
+  });
+}
+
+async function deleteVacunaForMascota(idUsuario, rolName, idMascota, idMascotaVacuna) {
+  if (rolName === 'cliente') {
+    const idCliente = await resolverIdCliente(idUsuario);
+    await assertMascotaDelCliente(idMascota, idCliente);
+  }
+  const ok = await mascotaVacunaModel.deleteVacunaMascota(idMascotaVacuna);
+  if (!ok) throw new ServiceError(404, 'Registro de vacuna no encontrado');
+}
+
 module.exports = {
   getMascotasByUsuario,
   getMascotaById,
@@ -116,4 +166,8 @@ module.exports = {
   updateMascotaForUsuario,
   deleteMascotaForUsuario,
   uploadFotoMascota,
+  getVacunasCatalogo,
+  getVacunasByMascota,
+  createVacunaForMascota,
+  deleteVacunaForMascota,
 };

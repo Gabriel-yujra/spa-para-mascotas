@@ -33,6 +33,10 @@ const clienteRoutes = require('./src/routes/clienteRoutes');
 const mascotaRoutes = require('./src/routes/mascotaRoutes');
 const groomingRoutes = require('./src/routes/groomingRoutes');
 const servicioRoutes = require('./src/routes/servicioRoutes');
+const cajaRoutes     = require('./src/routes/cajaRoutes');
+const pagosRoutes    = require('./src/routes/pagosRoutes');
+const productoRoutes = require('./src/routes/productoRoutes');
+const opinionRoutes  = require('./src/routes/opinionRoutes');
 
 authRoutes(app);
 employeeRoutes(app);
@@ -44,6 +48,10 @@ clienteRoutes(app);
 mascotaRoutes(app);
 groomingRoutes(app);
 servicioRoutes(app);
+cajaRoutes(app);
+pagosRoutes(app);
+productoRoutes(app);
+opinionRoutes(app);
 
 // Healthcheck simple
 app.get('/api/health', (_req, res) => {

@@ -14,6 +14,103 @@ function mascotaFotoSrc(m) {
   return perroDefault;
 }
 
+// ── Photo modal ───────────────────────────────────────────────
+const photoModal = ref(null); // { src, nombre }
+function openPhotoModal(m) {
+  if (!m.foto_url) return;
+  photoModal.value = { src: mascotaFotoSrc(m), nombre: m.nombre };
+}
+function closePhotoModal() { photoModal.value = null; }
+
+// ── Vacunas panel ─────────────────────────────────────────────
+const vacunasMascota    = ref(null);   // mascota seleccionada para ver vacunas
+const vacunas           = ref([]);
+const catalogo          = ref([]);
+const loadingVacunas    = ref(false);
+const savingVacuna      = ref(false);
+const deletingVacunaId  = ref(null);
+const vacunaErrorMsg    = ref('');
+const vacunaSuccessMsg  = ref('');
+
+const emptyVacunaForm = () => ({ id_vacuna: '', fecha_aplicacion: '', fecha_proxima: '', observaciones: '' });
+const vacunaForm = ref(emptyVacunaForm());
+
+async function loadCatalogo() {
+  try {
+    const data = await mascotaApi.getVacunasCatalogo();
+    catalogo.value = data.vacunas || [];
+  } catch { catalogo.value = []; }
+}
+
+async function openVacunas(m) {
+  vacunasMascota.value  = m;
+  vacunas.value         = [];
+  vacunaForm.value      = emptyVacunaForm();
+  vacunaErrorMsg.value  = '';
+  vacunaSuccessMsg.value = '';
+  loadingVacunas.value  = true;
+  try {
+    const data = await mascotaApi.getVacunasMascota(m.id_mascota);
+    vacunas.value = data.vacunas || [];
+  } catch (err) {
+    vacunaErrorMsg.value = err.response?.data?.error || 'Error al cargar vacunas';
+  } finally {
+    loadingVacunas.value = false;
+  }
+}
+
+function closeVacunas() {
+  vacunasMascota.value = null;
+  vacunas.value = [];
+}
+
+async function onAddVacuna() {
+  vacunaErrorMsg.value   = '';
+  vacunaSuccessMsg.value = '';
+  if (!vacunaForm.value.id_vacuna)         { vacunaErrorMsg.value = 'Selecciona una vacuna'; return; }
+  if (!vacunaForm.value.fecha_aplicacion)  { vacunaErrorMsg.value = 'La fecha de aplicación es obligatoria'; return; }
+  savingVacuna.value = true;
+  try {
+    const data = await mascotaApi.createVacunaMascota(vacunasMascota.value.id_mascota, {
+      id_vacuna:        vacunaForm.value.id_vacuna,
+      fecha_aplicacion: vacunaForm.value.fecha_aplicacion,
+      fecha_proxima:    vacunaForm.value.fecha_proxima || null,
+      observaciones:    vacunaForm.value.observaciones.trim() || null,
+    });
+    vacunas.value.unshift({ ...data.vacuna, nombre_vacuna: catalogo.value.find(v => v.id_vacuna === data.vacuna.id_vacuna)?.nombre });
+    vacunaForm.value      = emptyVacunaForm();
+    vacunaSuccessMsg.value = '✅ Vacuna registrada';
+    // recargo para obtener nombre_vacuna del JOIN
+    const refreshed = await mascotaApi.getVacunasMascota(vacunasMascota.value.id_mascota);
+    vacunas.value = refreshed.vacunas || [];
+  } catch (err) {
+    vacunaErrorMsg.value = err.response?.data?.error || 'Error al registrar vacuna';
+  } finally {
+    savingVacuna.value = false;
+  }
+}
+
+async function onDeleteVacuna(idMascotaVacuna) {
+  vacunaErrorMsg.value   = '';
+  vacunaSuccessMsg.value = '';
+  deletingVacunaId.value = idMascotaVacuna;
+  try {
+    await mascotaApi.deleteVacunaMascota(vacunasMascota.value.id_mascota, idMascotaVacuna);
+    vacunas.value = vacunas.value.filter(v => v.id_mascota_vacuna !== idMascotaVacuna);
+    vacunaSuccessMsg.value = '✅ Vacuna eliminada';
+  } catch (err) {
+    vacunaErrorMsg.value = err.response?.data?.error || 'Error al eliminar vacuna';
+  } finally {
+    deletingVacunaId.value = null;
+  }
+}
+
+function formatFecha(s) {
+  if (!s) return '—';
+  const [y, m, d] = s.slice(0, 10).split('-');
+  return `${d}/${m}/${y}`;
+}
+
 const mascotas = ref([]);
 const loading  = ref(false);
 const errorMsg  = ref('');
@@ -150,7 +247,10 @@ async function confirmDelete() {
   }
 }
 
-onMounted(loadMascotas);
+onMounted(() => {
+  loadMascotas();
+  loadCatalogo();
+});
 </script>
 
 <template>
@@ -271,6 +371,17 @@ onMounted(loadMascotas);
       </form>
     </AppCard>
 
+    <!-- ── Photo modal ────────────────────────────────────────── -->
+    <Teleport to="body">
+      <div v-if="photoModal" class="photo-overlay" @click.self="closePhotoModal">
+        <div class="photo-modal">
+          <button class="photo-modal__close" @click="closePhotoModal">✕</button>
+          <img :src="photoModal.src" :alt="photoModal.nombre" class="photo-modal__img" />
+          <p class="photo-modal__nombre">{{ photoModal.nombre }}</p>
+        </div>
+      </div>
+    </Teleport>
+
     <!-- ── List ─────────────────────────────────────────────── -->
     <AppCard :title="`Mis mascotas (${mascotas.length})`" no-padding>
       <div v-if="loading" class="state">Cargando…</div>
@@ -293,7 +404,13 @@ onMounted(loadMascotas);
           <tbody>
             <tr v-for="m in mascotas" :key="m.id_mascota">
               <td class="avatar-cell">
-                <img :src="mascotaFotoSrc(m)" :alt="m.nombre" class="mascota-avatar" />
+                <img
+                  :src="mascotaFotoSrc(m)"
+                  :alt="m.nombre"
+                  class="mascota-avatar"
+                  :class="{ 'mascota-avatar--clickable': !!m.foto_url }"
+                  @click="openPhotoModal(m)"
+                />
               </td>
               <td><b>{{ m.nombre }}</b></td>
               <td>{{ m.especie || '—' }}</td>
@@ -305,11 +422,98 @@ onMounted(loadMascotas);
               <td>{{ m.temperamento || '—' }}</td>
               <td class="actions-cell">
                 <button class="link-btn" @click="openEdit(m)">Editar</button>
+                <button
+                  class="link-btn"
+                  :class="{ active: vacunasMascota?.id_mascota === m.id_mascota }"
+                  @click="vacunasMascota?.id_mascota === m.id_mascota ? closeVacunas() : openVacunas(m)"
+                >💉 Vacunas</button>
                 <button class="link-btn danger" @click="askDelete(m.id_mascota)">Eliminar</button>
               </td>
             </tr>
           </tbody>
         </table>
+      </div>
+    </AppCard>
+
+    <!-- ── Vacunas panel ─────────────────────────────────────── -->
+    <AppCard
+      v-if="vacunasMascota"
+      :title="`💉 Vacunas de ${vacunasMascota.nombre}`"
+      variant="soft"
+    >
+      <p v-if="vacunaErrorMsg"   class="error">{{ vacunaErrorMsg }}</p>
+      <p v-if="vacunaSuccessMsg" class="success">{{ vacunaSuccessMsg }}</p>
+
+      <!-- Lista de vacunas -->
+      <div v-if="loadingVacunas" class="state">Cargando vacunas…</div>
+      <div v-else-if="!vacunas.length" class="state vacunas-empty">
+        No hay vacunas registradas para esta mascota.
+      </div>
+      <div v-else class="vacunas-table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Vacuna</th>
+              <th>Aplicación</th>
+              <th>Próxima dosis</th>
+              <th>Observaciones</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="v in vacunas" :key="v.id_mascota_vacuna">
+              <td><b>{{ v.nombre_vacuna }}</b></td>
+              <td>{{ formatFecha(v.fecha_aplicacion) }}</td>
+              <td>{{ formatFecha(v.fecha_proxima) }}</td>
+              <td class="obs-cell">{{ v.observaciones || '—' }}</td>
+              <td>
+                <button
+                  class="link-btn danger"
+                  :disabled="deletingVacunaId === v.id_mascota_vacuna"
+                  @click="onDeleteVacuna(v.id_mascota_vacuna)"
+                >
+                  {{ deletingVacunaId === v.id_mascota_vacuna ? '…' : 'Eliminar' }}
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Formulario para agregar vacuna -->
+      <div class="vacuna-form">
+        <h4 class="vacuna-form__title">Registrar nueva vacuna</h4>
+        <div class="form-grid">
+          <div class="field">
+            <label>Vacuna <span class="required">*</span></label>
+            <select v-model="vacunaForm.id_vacuna">
+              <option value="" disabled>Selecciona una vacuna…</option>
+              <option
+                v-for="c in catalogo"
+                :key="c.id_vacuna"
+                :value="c.id_vacuna"
+              >{{ c.nombre }}</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Fecha de aplicación <span class="required">*</span></label>
+            <input v-model="vacunaForm.fecha_aplicacion" type="date" />
+          </div>
+          <div class="field">
+            <label>Próxima dosis</label>
+            <input v-model="vacunaForm.fecha_proxima" type="date" />
+          </div>
+          <div class="field field--wide">
+            <label>Observaciones</label>
+            <input v-model="vacunaForm.observaciones" type="text" placeholder="Reacciones, lote, clínica…" />
+          </div>
+        </div>
+        <div class="form-actions">
+          <PrimaryButton :loading="savingVacuna" @click="onAddVacuna">
+            {{ savingVacuna ? 'Guardando…' : 'Agregar vacuna' }}
+          </PrimaryButton>
+          <PrimaryButton variant="ghost" @click="closeVacunas">Cerrar</PrimaryButton>
+        </div>
       </div>
     </AppCard>
   </div>
@@ -380,4 +584,59 @@ onMounted(loadMascotas);
 .link-btn:hover { background: var(--color-bg-soft); }
 .link-btn.danger { border-color: var(--color-danger); color: var(--color-danger); }
 .link-btn.danger:hover { background: #fee2e2; }
+.link-btn.active { border-color: var(--color-primary); color: var(--color-primary-dark); background: var(--color-primary-soft); }
+
+/* ── Photo modal ──────────────────────────────── */
+.mascota-avatar--clickable { cursor: zoom-in; }
+.mascota-avatar--clickable:hover { opacity: 0.85; }
+
+.photo-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+.photo-modal {
+  position: relative;
+  background: var(--color-card);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  max-width: 480px;
+  width: 90vw;
+  text-align: center;
+  box-shadow: var(--shadow-md);
+}
+.photo-modal__close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: var(--color-text-soft);
+}
+.photo-modal__img {
+  width: 100%;
+  max-height: 380px;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+}
+.photo-modal__nombre {
+  margin: 0.5rem 0 0 0;
+  font-weight: 700;
+}
+
+/* ── Vacunas panel ────────────────────────────── */
+.vacunas-table-wrapper { overflow-x: auto; margin-bottom: 1rem; }
+.vacunas-empty { padding: 1.25rem; text-align: center; color: var(--color-text-soft); }
+.obs-cell { max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.vacuna-form { margin-top: 1rem; border-top: 1px solid var(--color-card-border); padding-top: 1rem; }
+.vacuna-form__title { margin: 0 0 0.75rem 0; font-size: 0.95rem; }
+
+.required { color: var(--color-danger); }
 </style>

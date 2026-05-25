@@ -31,6 +31,7 @@ function logout() {
           <router-link v-if="auth.role === ROLES.CLIENTE" to="/mis-mascotas">Mis mascotas</router-link>
           <router-link v-if="auth.role === ROLES.CLIENTE" to="/solicitar-cita">Solicitar cita</router-link>
           <router-link v-if="auth.role === ROLES.CLIENTE" to="/mis-citas">Mis citas</router-link>
+          <router-link v-if="auth.role === ROLES.CLIENTE" to="/mi-perfil">Mi perfil</router-link>
 
           <!-- Groomer -->
           <router-link v-if="auth.role === ROLES.GROOMER" to="/groomer/agenda">Mi agenda</router-link>
@@ -51,8 +52,17 @@ function logout() {
 
           <!-- Admin / Jefe -->
           <router-link v-if="isAdminLike(auth.role)" to="/admin/empleados">Empleados</router-link>
+          <router-link v-if="isAdminLike(auth.role)" to="/admin/servicios">Servicios</router-link>
+          <router-link v-if="isAdminLike(auth.role)" to="/admin/productos">Productos</router-link>
+          <router-link v-if="isAdminLike(auth.role)" to="/admin/opiniones">Opiniones</router-link>
           <router-link v-if="isAdminLike(auth.role)" to="/admin/auditoria">Auditoría</router-link>
           <router-link v-if="auth.role === ROLES.ADMIN" to="/admin/seguridad">Seguridad</router-link>
+
+          <!-- Caja: admin/jefe/recepcion -->
+          <router-link
+            v-if="auth.role === ROLES.RECEPCION || isAdminLike(auth.role)"
+            to="/admin/caja"
+          >Caja</router-link>
           <router-link to="/change-password">Cambiar contraseña</router-link>
 
           <span class="user-pill">

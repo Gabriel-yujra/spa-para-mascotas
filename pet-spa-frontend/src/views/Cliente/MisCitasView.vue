@@ -1,7 +1,8 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { citaApi } from '@/api/citaApi';
+import { citaApi }   from '@/api/citaApi';
+import { opinionApi } from '@/api/opinionApi';
 import AppCard       from '@/components/AppCard.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 
@@ -15,6 +16,13 @@ const successMsg = ref('');
 const cancelId       = ref(null);
 const cancelMotivo   = ref('');
 const cancelling     = ref(false);
+
+// Opinión
+const opinionCita      = ref(null);   // cita sobre la que se opina
+const opinionCal       = ref(0);      // calificación seleccionada 1-5
+const opinionComentario = ref('');
+const opinionSaving    = ref(false);
+const opiniadasIds     = ref(new Set()); // IDs de citas ya opinadas
 
 // Estado label and badge helpers
 const ESTADO_LABELS = {
@@ -70,13 +78,42 @@ async function loadCitas() {
   loading.value = true;
   errorMsg.value = '';
   try {
-    const data = await citaApi.getMisCitas();
-    citas.value = data.citas || [];
+    const [citasData, opinionesData] = await Promise.all([
+      citaApi.getMisCitas(),
+      opinionApi.getMisOpiniones().catch(() => ({ opiniones: [] })),
+    ]);
+    citas.value = citasData.citas || [];
+    opiniadasIds.value = new Set((opinionesData.opiniones || []).map((o) => o.id_cita));
   } catch (err) {
     errorMsg.value = err.response?.data?.error || 'Error al cargar citas';
   } finally {
     loading.value = false;
   }
+}
+
+function abrirOpinion(cita) {
+  opinionCita.value       = cita;
+  opinionCal.value        = 0;
+  opinionComentario.value = '';
+  errorMsg.value          = '';
+  successMsg.value        = '';
+}
+
+async function enviarOpinion() {
+  if (!opinionCal.value) { errorMsg.value = 'Selecciona una calificación'; return; }
+  opinionSaving.value = true; errorMsg.value = '';
+  try {
+    await opinionApi.crearOpinion({
+      id_cita: opinionCita.value.id_cita,
+      calificacion: opinionCal.value,
+      comentario: opinionComentario.value,
+    });
+    opiniadasIds.value.add(opinionCita.value.id_cita);
+    successMsg.value  = '¡Gracias por tu opinión!';
+    opinionCita.value = null;
+  } catch (err) {
+    errorMsg.value = err.response?.data?.error || 'Error al enviar opinión';
+  } finally { opinionSaving.value = false; }
 }
 
 function askCancel(id) {
@@ -119,6 +156,31 @@ onMounted(loadCitas);
 
     <p v-if="errorMsg"   class="error">{{ errorMsg }}</p>
     <p v-if="successMsg" class="success">{{ successMsg }}</p>
+
+    <!-- ── Opinion modal ─────────────────────────────────────── -->
+    <div v-if="opinionCita" class="modal-overlay" @click.self="opinionCita = null">
+      <div class="modal">
+        <h3>Calificar servicio</h3>
+        <p class="muted">{{ opinionCita.servicio_nombre }} · {{ formatFecha(opinionCita.fecha_cita) }}</p>
+        <div class="stars-input">
+          <button
+            v-for="n in 5" :key="n"
+            class="star-btn"
+            :class="{ active: n <= opinionCal }"
+            @click="opinionCal = n"
+          >★</button>
+        </div>
+        <div class="field">
+          <label>Comentario (opcional)</label>
+          <textarea v-model="opinionComentario" rows="3" placeholder="¿Cómo fue tu experiencia?" />
+        </div>
+        <p v-if="errorMsg" class="msg-error">{{ errorMsg }}</p>
+        <div class="modal-actions">
+          <PrimaryButton :loading="opinionSaving" @click="enviarOpinion">Enviar opinión</PrimaryButton>
+          <PrimaryButton variant="ghost" @click="opinionCita = null">Cancelar</PrimaryButton>
+        </div>
+      </div>
+    </div>
 
     <!-- ── Cancellation dialog ─────────────────────────────── -->
     <div v-if="cancelId" class="confirm-banner">
@@ -184,6 +246,17 @@ onMounted(loadCitas);
                 >
                   Ver ficha
                 </button>
+                <button
+                  v-if="c.estado_global === 'completada' && !opiniadasIds.has(c.id_cita)"
+                  class="link-btn accent"
+                  @click="abrirOpinion(c)"
+                >
+                  Opinar
+                </button>
+                <span
+                  v-if="c.estado_global === 'completada' && opiniadasIds.has(c.id_cita)"
+                  class="muted small"
+                >Ya opinaste</span>
                 <span v-if="!isCancelable(c) && c.estado_global !== 'completada'" class="muted">—</span>
               </td>
             </tr>
@@ -233,4 +306,32 @@ onMounted(loadCitas);
 .link-btn:hover { background: var(--color-bg-soft); }
 .link-btn.danger { border-color: var(--color-danger); color: var(--color-danger); }
 .link-btn.danger:hover { background: #fee2e2; }
+.link-btn.accent { border-color: var(--color-accent); color: var(--color-accent); }
+.link-btn.accent:hover { background: #fef3c7; }
+.small { font-size: 0.75rem; }
+
+/* Opinion modal */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.35);
+  display: flex; align-items: center; justify-content: center; z-index: 100;
+}
+.modal {
+  background: #fff; border-radius: var(--radius-lg); padding: 1.75rem;
+  width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 1rem;
+  box-shadow: var(--shadow-md);
+}
+.modal h3 { margin: 0; }
+.modal .muted { margin: 0; font-size: 0.9rem; }
+.modal-actions { display: flex; gap: 0.75rem; }
+
+.stars-input { display: flex; gap: 0.35rem; }
+.star-btn {
+  background: none; border: none; font-size: 2rem; cursor: pointer;
+  color: #d1d5db; line-height: 1; padding: 0;
+}
+.star-btn.active { color: #f59e0b; }
+.star-btn:hover  { color: #f59e0b; }
+
+.msg-error { color: var(--color-danger); margin: 0; font-size: 0.875rem; }
 </style>

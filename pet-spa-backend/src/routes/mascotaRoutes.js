@@ -11,8 +11,9 @@ const mustNotForcePasswordChange = require('../middlewares/mustNotForcePasswordC
 const multerMascotas = require('../config/multerMascotas');
 const { ROLES } = require('../utils/rolesUtils');
 
-const STAFF_MASCOTA = [ROLES.ADMIN, ROLES.JEFE, ROLES.RECEPCION, ROLES.EMPLEADO, ROLES.GROOMER];
-const FOTO_ROLES   = [ROLES.CLIENTE, ROLES.ADMIN, ROLES.JEFE, ROLES.RECEPCION];
+const STAFF_MASCOTA  = [ROLES.ADMIN, ROLES.JEFE, ROLES.RECEPCION, ROLES.EMPLEADO, ROLES.GROOMER];
+const FOTO_ROLES     = [ROLES.CLIENTE, ROLES.ADMIN, ROLES.JEFE, ROLES.RECEPCION];
+const VACUNA_ROLES   = [ROLES.CLIENTE, ROLES.ADMIN, ROLES.JEFE, ROLES.RECEPCION];
 
 module.exports = (app) => {
   // IMPORTANTE: registrar '/api/mascotas/mias' ANTES de '/api/mascotas/:id'
@@ -23,6 +24,15 @@ module.exports = (app) => {
     mustNotForcePasswordChange,
     requireRole([ROLES.CLIENTE]),
     mascotaController.getMisMascotas
+  );
+
+  // IMPORTANTE: registrar catálogo ANTES de '/:id' para que 'vacunas' no sea capturado.
+  app.get(
+    '/api/mascotas/vacunas/catalogo',
+    authRequired,
+    mustNotForcePasswordChange,
+    requireRole(VACUNA_ROLES),
+    mascotaController.getVacunasCatalogo
   );
 
   app.post(
@@ -59,6 +69,31 @@ module.exports = (app) => {
     requireRole(FOTO_ROLES),
     multerMascotas.single('foto'),
     mascotaController.uploadFoto
+  );
+
+  // ── Vacunas por mascota ───────────────────────────────────
+  app.get(
+    '/api/mascotas/:idMascota/vacunas',
+    authRequired,
+    mustNotForcePasswordChange,
+    requireRole(VACUNA_ROLES),
+    mascotaController.getVacunasMascota
+  );
+
+  app.post(
+    '/api/mascotas/:idMascota/vacunas',
+    authRequired,
+    mustNotForcePasswordChange,
+    requireRole(VACUNA_ROLES),
+    mascotaController.createVacunaMascota
+  );
+
+  app.delete(
+    '/api/mascotas/:idMascota/vacunas/:idMascotaVacuna',
+    authRequired,
+    mustNotForcePasswordChange,
+    requireRole(VACUNA_ROLES),
+    mascotaController.deleteVacunaMascota
   );
 
   // ── Staff: view any pet by ID ─────────────────────────────

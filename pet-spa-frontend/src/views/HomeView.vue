@@ -52,6 +52,7 @@ const auth = useAuthStore();
         variant="soft"
       >
         <ul class="quick">
+          <li v-if="auth.role === ROLES.CLIENTE"><router-link to="/mi-perfil">👤 Mi perfil</router-link></li>
           <li><router-link to="/change-password">🔐 Cambiar mi contraseña</router-link></li>
         </ul>
       </AppCard>
@@ -91,6 +92,32 @@ const auth = useAuthStore();
         <ul class="quick">
           <li><router-link to="/admin/empleados">👥 Gestionar empleados</router-link></li>
           <li><router-link to="/admin/auditoria">📋 Ver auditoría</router-link></li>
+          <li><router-link to="/admin/pagos-empleados">💵 Pagos a empleados</router-link></li>
+        </ul>
+      </AppCard>
+
+      <AppCard
+        v-if="isAdminLike(auth.role)"
+        title="Gestión del spa"
+        subtitle="Servicios, caja, productos e inventario"
+        variant="soft"
+      >
+        <ul class="quick">
+          <li><router-link to="/admin/servicios">✂️ Servicios</router-link></li>
+          <li><router-link to="/admin/productos">📦 Productos / Inventario</router-link></li>
+          <li><router-link to="/admin/opiniones">⭐ Opiniones de clientes</router-link></li>
+        </ul>
+      </AppCard>
+
+      <!-- Caja: admin/jefe/recepcion -->
+      <AppCard
+        v-if="isAdminLike(auth.role) || auth.role === ROLES.RECEPCION"
+        title="Caja"
+        subtitle="Ingresos, egresos y saldo"
+        variant="soft"
+      >
+        <ul class="quick">
+          <li><router-link to="/admin/caja">💰 Ver caja actual</router-link></li>
         </ul>
       </AppCard>
 
