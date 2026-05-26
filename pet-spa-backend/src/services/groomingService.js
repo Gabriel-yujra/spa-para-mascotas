@@ -3,14 +3,16 @@
 // All database-mutating operations use transactions when touching more than one table.
 const db = require('../config/db');
 
-const trabajadorModel      = require('../models/trabajadorModel');
-const citaModel            = require('../models/citaModel');
-const groomingFichaModel   = require('../models/groomingFichaModel');
+const trabajadorModel        = require('../models/trabajadorModel');
+const citaModel              = require('../models/citaModel');
+const groomingFichaModel     = require('../models/groomingFichaModel');
 const groomingChecklistModel = require('../models/groomingChecklistModel');
-const mascotaModel         = require('../models/mascotaModel');
-const userModel            = require('../models/userModel');
-const { ESTADOS, canTransition } = require('../utils/citaEstados');
-const { sendListoParaRecoger } = require('../config/mail');
+const groomingInsumosModel   = require('../models/groomingInsumosModel');
+const mascotaModel           = require('../models/mascotaModel');
+const userModel              = require('../models/userModel');
+const { ESTADOS, canTransition }       = require('../utils/citaEstados');
+const { sendListoParaRecoger }         = require('../config/mail');
+const { enviarAlertaStockBajo }        = require('./inventarioAlertaService');
 
 class ServiceError extends Error {
   constructor(status, message) { super(message); this.status = status; }
@@ -46,10 +48,6 @@ async function assertCitaDelGroomer(idCita, idTrabajador) {
   }
 }
 
-/**
- * Merges allItems with existing checklist rows so the caller always gets
- * one entry per item (realizado defaults to false when not yet saved).
- */
 function mergeChecklist(allItems, savedRows) {
   return allItems.map((item) => {
     const saved = savedRows.find((r) => r.id_item === item.id_item);
@@ -64,11 +62,6 @@ function mergeChecklist(allItems, savedRows) {
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
-/**
- * GET /api/grooming/agenda
- * Without fecha → all non-cancelled citas for this groomer (paginated).
- * With fecha    → only that day.
- */
 async function getAgendaDelGroomer(idUsuario, { fecha, limit = 10, offset = 0 } = {}) {
   const trabajador = await resolverTrabajador(idUsuario);
 
@@ -102,10 +95,6 @@ async function getAgendaDelGroomer(idUsuario, { fecha, limit = 10, offset = 0 } 
   return agenda;
 }
 
-/**
- * GET /api/grooming/fichas/:idCita  (GROOMER)
- * Returns ficha (creating it if absent), full checklist, fotos, and cita state.
- */
 async function getOrCreateFichaForCita(idUsuario, idCita) {
   const trabajador = await resolverTrabajador(idUsuario);
   await assertCitaDelGroomer(idCita, trabajador.id_trabajador);
@@ -121,10 +110,11 @@ async function getOrCreateFichaForCita(idUsuario, idCita) {
 
   const ficha = existing || await groomingFichaModel.createFichaForCita(idCita, {});
 
-  const [savedChecklist, allItems, fotos] = await Promise.all([
+  const [savedChecklist, allItems, fotos, insumos] = await Promise.all([
     groomingChecklistModel.getChecklistByFichaId(ficha.id_ficha),
     groomingChecklistModel.getAllItems(),
     groomingFichaModel.getFotosByFichaId(ficha.id_ficha),
+    groomingInsumosModel.findInsumosByFicha(ficha.id_ficha),
   ]);
 
   return {
@@ -132,6 +122,7 @@ async function getOrCreateFichaForCita(idUsuario, idCita) {
     mascota,
     checklist: mergeChecklist(allItems, savedChecklist),
     fotos,
+    insumos,
     cita: cita ? {
       id_cita:       cita.id_cita,
       estado_global: cita.estado_global,
@@ -141,16 +132,6 @@ async function getOrCreateFichaForCita(idUsuario, idCita) {
   };
 }
 
-/**
- * PUT /api/grooming/fichas/:idCita  (GROOMER)
- * Updates ficha fields + optional checklist + optional state transition.
- *
- * Body fields:
- *   Ficha: estado_ingreso, observaciones, recomendaciones, tamano_mascota,
- *          temperatura, notas_internas, fecha_cierre, consumido_inventario
- *   Checklist: checklist ([{ id_item, realizado, observacion }])
- *   Cita state: nuevo_estado_global (optional)
- */
 async function updateFichaFromGroomer(idUsuario, idCita, data) {
   const trabajador = await resolverTrabajador(idUsuario);
   await assertCitaDelGroomer(idCita, trabajador.id_trabajador);
@@ -183,7 +164,6 @@ async function updateFichaFromGroomer(idUsuario, idCita, data) {
   const hasChecklist = Array.isArray(checklist) && checklist.length > 0;
 
   if (!needsStateTransition) {
-    // No state change → simple update, no transaction required
     let ficha = await groomingFichaModel.getFichaByCitaId(idCita);
     if (!ficha) {
       ficha = await groomingFichaModel.createFichaForCita(idCita, fichaFields);
@@ -231,6 +211,8 @@ async function updateFichaFromGroomer(idUsuario, idCita, data) {
   }
 
   const client = await db.getClient();
+  let insumosDescontados = false;
+
   try {
     await client.query('BEGIN');
 
@@ -241,6 +223,13 @@ async function updateFichaFromGroomer(idUsuario, idCita, data) {
     );
 
     let ficha = await groomingFichaModel.getFichaByCitaId(idCita);
+    const yaConsumo = ficha?.consumido_inventario === true;
+
+    // Mark inventario as consumed when closing (idempotent)
+    if (nuevo_estado_global === ESTADOS.COMPLETADA && !yaConsumo) {
+      fichaFields.consumido_inventario = true;
+    }
+
     if (!ficha) {
       ficha = await groomingFichaModel.createFichaForCita(idCita, fichaFields, client);
     } else if (Object.keys(fichaFields).length > 0) {
@@ -251,20 +240,44 @@ async function updateFichaFromGroomer(idUsuario, idCita, data) {
       await groomingChecklistModel.upsertChecklistItems(ficha.id_ficha, checklist, client);
     }
 
+    // Deduct stock from inventory when closing, only if not already done
+    if (nuevo_estado_global === ESTADOS.COMPLETADA && !yaConsumo && ficha) {
+      const insumos = await groomingInsumosModel.findInsumosByFicha(ficha.id_ficha);
+      if (insumos.length > 0) {
+        for (const insumo of insumos) {
+          await client.query(
+            `UPDATE productos
+               SET stock_unidades = GREATEST(stock_unidades - $2, 0)
+             WHERE id_producto = $1`,
+            [insumo.id_producto, insumo.unidades_usadas]
+          );
+        }
+        insumosDescontados = true;
+      }
+    }
+
     await client.query('COMMIT');
 
+    // Fire-and-forget: stock alert if inventory was affected
+    if (insumosDescontados) {
+      (async () => {
+        try { await enviarAlertaStockBajo(); }
+        catch (e) { console.error('[groomingService] Error al enviar alerta stock:', e.message); }
+      })();
+    }
+
+    // Fire-and-forget: email notification to client
     if (nuevo_estado_global === ESTADOS.COMPLETADA) {
-      // Fire-and-forget: never block the response on mail delivery
       (async () => {
         try {
           const usuario = await userModel.findUserById(cita.id_usuario_cliente);
           if (usuario?.email) {
             await sendListoParaRecoger({
-              clienteEmail:   usuario.email,
-              clienteNombre:  usuario.nombre,
-              mascotaNombre:  cita.mascota_nombre  || 'Tu mascota',
-              servicioNombre: cita.servicio_nombre || 'el servicio',
-              observaciones:  fichaFields.observaciones  ?? ficha?.observaciones,
+              clienteEmail:    usuario.email,
+              clienteNombre:   usuario.nombre,
+              mascotaNombre:   cita.mascota_nombre  || 'Tu mascota',
+              servicioNombre:  cita.servicio_nombre || 'el servicio',
+              observaciones:   fichaFields.observaciones  ?? ficha?.observaciones,
               recomendaciones: fichaFields.recomendaciones ?? ficha?.recomendaciones,
             });
           }
@@ -283,10 +296,38 @@ async function updateFichaFromGroomer(idUsuario, idCita, data) {
   }
 }
 
-/**
- * GET /api/grooming/fichas/:idCita/admin  (RECEPCION / ADMIN / JEFE)
- * Full read-only view of the ficha. No ownership check — any staff can view.
- */
+// ── Insumos management ────────────────────────────────────────────────────────
+
+async function getInsumosForCita(idUsuario, idCita) {
+  const trabajador = await resolverTrabajador(idUsuario);
+  await assertCitaDelGroomer(idCita, trabajador.id_trabajador);
+
+  const ficha = await groomingFichaModel.getFichaByCitaId(idCita);
+  if (!ficha) return { insumos: [], ficha_id: null };
+
+  const insumos = await groomingInsumosModel.findInsumosByFicha(ficha.id_ficha);
+  return { insumos, ficha_id: ficha.id_ficha };
+}
+
+async function saveInsumosForCita(idUsuario, idCita, items) {
+  const trabajador = await resolverTrabajador(idUsuario);
+  await assertCitaDelGroomer(idCita, trabajador.id_trabajador);
+
+  let ficha = await groomingFichaModel.getFichaByCitaId(idCita);
+  if (!ficha) {
+    ficha = await groomingFichaModel.createFichaForCita(idCita, {});
+  }
+
+  if (ficha.consumido_inventario === true) {
+    throw new ServiceError(409, 'No se pueden modificar insumos: el inventario ya fue descontado al cerrar la ficha');
+  }
+
+  const insumos = await groomingInsumosModel.replaceInsumosForFicha(ficha.id_ficha, items);
+  return { insumos };
+}
+
+// ── Read-only views ───────────────────────────────────────────────────────────
+
 async function getFichaForAdmin(idCita) {
   const cita = await citaModel.findCitaById(idCita);
   if (!cita) throw new ServiceError(404, 'Cita no encontrada');
@@ -303,6 +344,7 @@ async function getFichaForAdmin(idCita) {
       mascota,
       checklist: [],
       fotos: [],
+      insumos: [],
       cita: {
         id_cita:         cita.id_cita,
         estado_global:   cita.estado_global,
@@ -312,10 +354,11 @@ async function getFichaForAdmin(idCita) {
     };
   }
 
-  const [savedChecklist, allItems, fotos] = await Promise.all([
+  const [savedChecklist, allItems, fotos, insumos] = await Promise.all([
     groomingChecklistModel.getChecklistByFichaId(ficha.id_ficha),
     groomingChecklistModel.getAllItems(),
     groomingFichaModel.getFotosByFichaId(ficha.id_ficha),
+    groomingInsumosModel.findInsumosByFicha(ficha.id_ficha),
   ]);
 
   return {
@@ -323,6 +366,7 @@ async function getFichaForAdmin(idCita) {
     mascota,
     checklist: mergeChecklist(allItems, savedChecklist),
     fotos,
+    insumos,
     cita: {
       id_cita:         cita.id_cita,
       estado_global:   cita.estado_global,
@@ -332,20 +376,14 @@ async function getFichaForAdmin(idCita) {
   };
 }
 
-/**
- * GET /api/grooming/mis-citas/:idCita/ficha  (CLIENTE)
- * Summary view — validates cita ownership, strips internal fields.
- */
 async function getFichaForCliente(idUsuario, idCita) {
   const cita = await citaModel.findCitaById(idCita);
   if (!cita) throw new ServiceError(404, 'Cita no encontrada');
 
-  // Validate the cita belongs to the authenticated client
   if (cita.id_usuario_cliente !== idUsuario) {
     throw new ServiceError(403, 'Esta cita no pertenece a tu cuenta');
   }
 
-  // Client can only see ficha for completed citas
   if (cita.estado_global !== ESTADOS.COMPLETADA) {
     throw new ServiceError(403, 'La ficha solo está disponible una vez completada la cita');
   }
@@ -373,7 +411,6 @@ async function getFichaForCliente(idUsuario, idCita) {
     groomingFichaModel.getFotosByFichaId(ficha.id_ficha),
   ]);
 
-  // Strip internal fields: notas_internas, temperatura, estado_ingreso
   return {
     mascota,
     servicio_nombre: cita.servicio_nombre,
@@ -391,6 +428,8 @@ module.exports = {
   getAgendaDelGroomer,
   getOrCreateFichaForCita,
   updateFichaFromGroomer,
+  getInsumosForCita,
+  saveInsumosForCita,
   getFichaForAdmin,
   getFichaForCliente,
 };

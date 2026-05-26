@@ -18,6 +18,9 @@ import AdminCajaView from '@/views/Admin/AdminCajaView.vue';
 import AdminPagosEmpleadosView from '@/views/Admin/AdminPagosEmpleadosView.vue';
 import AdminProductosView from '@/views/Admin/AdminProductosView.vue';
 import AdminOpinionesView from '@/views/Admin/AdminOpinionesView.vue';
+import AdminReportesView  from '@/views/Admin/AdminReportesView.vue';
+
+import ClienteTiendaView  from '@/views/Cliente/ClienteTiendaView.vue';
 
 import HomeView from '@/views/HomeView.vue';
 
@@ -79,6 +82,12 @@ const routes = [
     component: SolicitarCitaView,
     meta: { requiresAuth: true, roles: [ROLES.CLIENTE] },
   },
+  {
+    path: '/tienda',
+    name: 'tienda',
+    component: ClienteTiendaView,
+    meta: { requiresAuth: true, roles: [ROLES.CLIENTE] },
+  },
 
   // Admin / Jefe
   {
@@ -131,6 +140,12 @@ const routes = [
     path: '/admin/opiniones',
     name: 'admin-opiniones',
     component: AdminOpinionesView,
+    meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.JEFE] },
+  },
+  {
+    path: '/admin/reportes',
+    name: 'admin-reportes',
+    component: AdminReportesView,
     meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.JEFE] },
   },
 

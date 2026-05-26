@@ -7,11 +7,12 @@ import PrimaryButton from '@/components/PrimaryButton.vue';
 // ── State ──────────────────────────────────────────────────────
 const bloqueos   = ref([]);
 const groomers   = ref([]);
-const loading    = ref(false);
-const submitting = ref(false);
-const deletingId = ref(null);
-const errorMsg   = ref('');
-const successMsg = ref('');
+const loading         = ref(false);
+const submitting      = ref(false);
+const deletingId      = ref(null);
+const errorMsg        = ref('');
+const successMsg      = ref('');
+const errorConCitas   = ref(false);   // true cuando el 409 es por citas activas
 
 // ── Filtros de búsqueda ────────────────────────────────────────
 const today = new Date().toISOString().slice(0, 10);
@@ -85,8 +86,9 @@ async function loadGroomers() {
 
 // ── Crear bloqueo ──────────────────────────────────────────────
 async function doCrear() {
-  errorMsg.value   = '';
-  successMsg.value = '';
+  errorMsg.value     = '';
+  successMsg.value   = '';
+  errorConCitas.value = false;
   if (!formFecha.value) { errorMsg.value = 'La fecha es obligatoria'; return; }
   if (!formTipo.value)  { errorMsg.value = 'El tipo es obligatorio'; return; }
 
@@ -109,7 +111,11 @@ async function doCrear() {
 
     await loadBloqueos();
   } catch (err) {
+    const status = err.response?.status;
     errorMsg.value = err.response?.data?.error || 'Error al crear el bloqueo';
+    if (status === 409 && err.response?.data?.citas_activas) {
+      errorConCitas.value = true;
+    }
   } finally {
     submitting.value = false;
   }
@@ -145,7 +151,12 @@ onMounted(() => {
     </header>
 
     <!-- ── Feedback ────────────────────────────────────────────── -->
-    <p v-if="errorMsg"   class="error">{{ errorMsg }}</p>
+    <p v-if="errorMsg" class="error">{{ errorMsg }}</p>
+    <div v-if="errorConCitas" class="citas-hint">
+      <b>¿Cómo proceder?</b> Ve a la
+      <router-link to="/recepcion/citas">bandeja de citas</router-link>
+      y reprograma o cancela las citas de ese día antes de registrar el bloqueo.
+    </div>
     <p v-if="successMsg" class="success">{{ successMsg }}</p>
 
     <!-- ── Filtros de búsqueda ─────────────────────────────────── -->
@@ -292,6 +303,16 @@ onMounted(() => {
 .link-btn.danger { border-color: var(--color-danger); color: var(--color-danger); }
 .link-btn.danger:hover:not(:disabled) { background: #fee2e2; }
 .link-btn:disabled { opacity: 0.5; cursor: default; }
+
+.citas-hint {
+  padding: 0.7rem 1rem;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  color: #92400e;
+}
+.citas-hint a { color: #b45309; font-weight: 600; }
 
 .form-grid {
   display: grid;

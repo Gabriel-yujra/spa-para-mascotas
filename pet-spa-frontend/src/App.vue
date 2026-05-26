@@ -31,6 +31,7 @@ function logout() {
           <router-link v-if="auth.role === ROLES.CLIENTE" to="/mis-mascotas">Mis mascotas</router-link>
           <router-link v-if="auth.role === ROLES.CLIENTE" to="/solicitar-cita">Solicitar cita</router-link>
           <router-link v-if="auth.role === ROLES.CLIENTE" to="/mis-citas">Mis citas</router-link>
+          <router-link v-if="auth.role === ROLES.CLIENTE" to="/tienda">Tienda</router-link>
           <router-link v-if="auth.role === ROLES.CLIENTE" to="/mi-perfil">Mi perfil</router-link>
 
           <!-- Groomer -->
@@ -55,6 +56,7 @@ function logout() {
           <router-link v-if="isAdminLike(auth.role)" to="/admin/servicios">Servicios</router-link>
           <router-link v-if="isAdminLike(auth.role)" to="/admin/productos">Productos</router-link>
           <router-link v-if="isAdminLike(auth.role)" to="/admin/opiniones">Opiniones</router-link>
+          <router-link v-if="isAdminLike(auth.role)" to="/admin/reportes">Reportes</router-link>
           <router-link v-if="isAdminLike(auth.role)" to="/admin/auditoria">Auditoría</router-link>
           <router-link v-if="auth.role === ROLES.ADMIN" to="/admin/seguridad">Seguridad</router-link>
 

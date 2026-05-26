@@ -410,7 +410,11 @@ onMounted(loadCitas);
               <td>{{ formatFecha(c.fecha_cita) }}</td>
               <td>{{ c.mascota_nombre || '—' }}</td>
               <td>{{ c.cliente_nombre || '—' }}</td>
-              <td>{{ c.servicio_nombre || '—' }}</td>
+              <td>
+                {{ c.servicio_nombre || '—' }}
+                <br v-if="c.duracion_estimada_min" />
+                <small v-if="c.duracion_estimada_min" class="dur-muted">{{ c.duracion_estimada_min }} min</small>
+              </td>
               <td>{{ c.groomer_nombre || '—' }}</td>
               <td>
                 <span class="badge" :class="estadoBadgeClass(c.estado_global)">
@@ -509,6 +513,7 @@ onMounted(loadCitas);
 }
 
 .state { padding: 2.5rem; text-align: center; color: var(--color-text-soft); }
+.dur-muted { color: var(--color-text-soft); font-size: 0.78rem; }
 .table-wrapper { overflow-x: auto; }
 
 .actions-cell {

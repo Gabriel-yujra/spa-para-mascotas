@@ -367,7 +367,11 @@ onMounted(loadCitas);
           <tbody>
             <tr v-for="c in citas" :key="c.id_cita">
               <td><b>{{ c.mascota_nombre || '—' }}</b></td>
-              <td>{{ c.servicio_nombre || '—' }}</td>
+              <td>
+                {{ c.servicio_nombre || '—' }}
+                <br v-if="c.duracion_estimada_min" />
+                <small v-if="c.duracion_estimada_min" class="muted">{{ c.duracion_estimada_min }} min</small>
+              </td>
               <td>{{ formatFecha(c.fecha_cita) }}</td>
               <td>{{ formatHora(c.hora_inicio) }}</td>
               <td>
@@ -424,6 +428,7 @@ onMounted(loadCitas);
 
 <style scoped>
 .citas-page { display: flex; flex-direction: column; gap: 1.25rem; }
+.muted { color: var(--color-text-soft); }
 .page-header h2 { margin: 0 0 0.25rem 0; }
 
 .top-actions { display: flex; justify-content: flex-end; }

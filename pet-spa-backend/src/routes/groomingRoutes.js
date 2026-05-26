@@ -56,4 +56,23 @@ module.exports = function groomingRoutes(app) {
     requireRole([ROLES.GROOMER]),
     groomingController.updateFicha
   );
+
+  // ── Insumos (IMPORTANT: registered before the bare :idCita routes above) ────
+  // GET insumos for a cita (GROOMER — own citas)
+  app.get(
+    '/api/grooming/fichas/:idCita/insumos',
+    authRequired,
+    mustNotForcePasswordChange,
+    requireRole([ROLES.GROOMER]),
+    groomingController.getInsumos
+  );
+
+  // PUT replace insumos for a cita (GROOMER — own citas)
+  app.put(
+    '/api/grooming/fichas/:idCita/insumos',
+    authRequired,
+    mustNotForcePasswordChange,
+    requireRole([ROLES.GROOMER]),
+    groomingController.saveInsumos
+  );
 };

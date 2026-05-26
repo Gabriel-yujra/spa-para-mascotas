@@ -189,7 +189,8 @@ onMounted(loadInit);
                 :value="s.id_servicio"
               >
                 {{ s.nombre }}
-                <template v-if="s.precio"> — Bs {{ Number(s.precio).toFixed(2) }}</template>
+                <template v-if="s.duracion_estimada_min"> — {{ s.duracion_estimada_min }} min</template>
+                <template v-if="s.precio"> · Bs {{ Number(s.precio).toFixed(2) }}</template>
               </option>
             </select>
           </div>
@@ -229,10 +230,26 @@ onMounted(loadInit);
             @click="selectedSlot = s"
           >
             <span class="slot-time">{{ slotLabel(s) }}</span>
-            <span class="badge" :class="slotBadgeClass(s)">
-              {{ s.estado === 'parcial' ? 'Parcial' : 'Libre' }}
+            <span class="slot-estado-row">
+              <span class="badge" :class="slotBadgeClass(s)">
+                {{ s.estado === 'parcial' ? 'Parcialmente ocupado' : 'Libre' }}
+              </span>
+              <span
+                v-if="s.estado === 'parcial'"
+                class="slot-info-icon"
+                title="Este horario está parcialmente ocupado: hay otro servicio programado cerca de este rango. El servicio podría comenzar unos minutos más tarde o terminar un poco después, incluyendo el tiempo de limpieza de la estación de trabajo."
+              >ℹ</span>
             </span>
           </button>
+        </div>
+
+        <div
+          v-if="selectedSlot?.estado === 'parcial'"
+          class="slot-parcial-note"
+        >
+          <b>ℹ Horario parcialmente ocupado</b> — Hay otro servicio programado cerca
+          de este rango. Tu cita podría comenzar unos minutos más tarde o terminar un
+          poco después, incluyendo el tiempo de limpieza de la estación de trabajo.
         </div>
       </AppCard>
 
@@ -245,7 +262,16 @@ onMounted(loadInit);
           </div>
           <div class="summary-row">
             <span class="summary-label">Servicio:</span>
-            <span>{{ servicios.find(s => s.id_servicio === selectedServicio)?.nombre }}</span>
+            <span>
+              {{ servicios.find(s => s.id_servicio === selectedServicio)?.nombre }}
+              <span v-if="servicios.find(s => s.id_servicio === selectedServicio)?.duracion_estimada_min" class="summary-duration">
+                · {{ servicios.find(s => s.id_servicio === selectedServicio).duracion_estimada_min }} min
+              </span>
+            </span>
+          </div>
+          <div class="summary-row">
+            <span class="summary-label">Precio:</span>
+            <span>Bs {{ Number(servicios.find(s => s.id_servicio === selectedServicio)?.precio || 0).toFixed(2) }}</span>
           </div>
           <div class="summary-row">
             <span class="summary-label">Fecha:</span>
@@ -332,10 +358,32 @@ onMounted(loadInit);
   box-shadow: 0 0 0 3px var(--color-primary-soft);
 }
 .slot-time { font-weight: 700; font-size: 0.95rem; }
+.slot-estado-row { display: flex; align-items: center; gap: 0.25rem; }
+.slot-info-icon {
+  font-size: 0.75rem;
+  color: var(--color-text-soft);
+  cursor: help;
+  border: 1px solid var(--color-card-border);
+  border-radius: 50%;
+  width: 1rem; height: 1rem;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.slot-parcial-note {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.9rem;
+  line-height: 1.45;
+}
 
 .summary { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1.25rem; }
 .summary-row { display: flex; gap: 0.75rem; font-size: 0.95rem; }
 .summary-label { font-weight: 700; color: var(--color-text-soft); min-width: 80px; }
+.summary-duration { color: var(--color-text-soft); font-size: 0.88rem; }
 
 .groomer-pref-field { margin-top: 0.25rem; margin-bottom: 0.5rem; }
 .form-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }

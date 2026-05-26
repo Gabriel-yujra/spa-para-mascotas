@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { groomingApi } from '@/api/groomingApi';
+import { tiendaApi }   from '@/api/tiendaApi';
 import AppCard       from '@/components/AppCard.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 import perroDefault from '@/assets/perro-default.svg';
@@ -43,6 +44,12 @@ const form = ref({
 // Checklist: array of { id_item, nombre, realizado, observacion }
 const checklist = ref([]);
 
+// Insumos
+const productosDisponibles = ref([]);
+const insumos = ref([]);      // [{ id_producto, unidades_usadas }]
+const savingInsumos = ref(false);
+const insumosMsg = ref('');
+
 const ESTADO_OPTIONS = [
   { value: '',            label: '— Sin cambio de estado —' },
   { value: 'en_progreso', label: 'Marcar en progreso' },
@@ -73,12 +80,21 @@ async function loadFicha() {
   loading.value  = true;
   errorMsg.value = '';
   try {
-    const data = await groomingApi.getFicha(idCita);
+    const [data, prodData] = await Promise.all([
+      groomingApi.getFicha(idCita),
+      tiendaApi.getProductos(),
+    ]);
     mascota.value  = data.mascota  || null;
     ficha.value    = data.ficha    || null;
     citaInfo.value = data.cita     || null;
     fotos.value    = data.fotos    || [];
     checklist.value = (data.checklist || []).map(item => ({ ...item }));
+    insumos.value = (data.insumos || []).map(i => ({
+      id_producto: i.id_producto,
+      unidades_usadas: i.unidades_usadas,
+      producto_nombre: i.producto_nombre,
+    }));
+    productosDisponibles.value = prodData.productos || [];
 
     if (ficha.value) {
       form.value.estado_ingreso  = ficha.value.estado_ingreso  || '';
@@ -132,6 +148,47 @@ async function guardar() {
     errorMsg.value = err.response?.data?.error || 'Error al guardar la ficha';
   } finally {
     saving.value = false;
+  }
+}
+
+function addInsumoRow() {
+  insumos.value.push({ id_producto: '', unidades_usadas: 0.5, producto_nombre: '' });
+}
+
+function snapToHalf(idx) {
+  const raw = parseFloat(insumos.value[idx].unidades_usadas) || 0;
+  const snapped = Math.round(raw * 2) / 2;
+  insumos.value[idx].unidades_usadas = snapped < 0.5 ? 0.5 : snapped;
+}
+function removeInsumoRow(idx) {
+  insumos.value.splice(idx, 1);
+}
+function onProductoChange(idx) {
+  const prod = productosDisponibles.value.find(p => p.id_producto === insumos.value[idx].id_producto);
+  if (prod) insumos.value[idx].producto_nombre = prod.nombre;
+}
+async function guardarInsumos() {
+  savingInsumos.value = true;
+  insumosMsg.value = '';
+  try {
+    const items = insumos.value
+      .filter(i => i.id_producto && parseFloat(i.unidades_usadas) > 0)
+      .map(i => {
+        const raw     = parseFloat(i.unidades_usadas) || 0;
+        const snapped = Math.max(0.5, Math.round(raw * 2) / 2);
+        return { id_producto: i.id_producto, unidades_usadas: snapped };
+      });
+    const data = await groomingApi.saveInsumos(idCita, items);
+    insumos.value = (data.insumos || []).map(i => ({
+      id_producto: i.id_producto,
+      unidades_usadas: i.unidades_usadas,
+      producto_nombre: i.producto_nombre || '',
+    }));
+    insumosMsg.value = 'Insumos guardados correctamente.';
+  } catch (err) {
+    insumosMsg.value = err.response?.data?.error || 'Error al guardar insumos';
+  } finally {
+    savingInsumos.value = false;
   }
 }
 
@@ -218,6 +275,42 @@ onMounted(loadFicha);
             <span class="check-nombre">{{ item.nombre }}</span>
           </label>
         </div>
+      </AppCard>
+
+      <!-- ── Insumos usados ────────────────────────────────────── -->
+      <AppCard title="Insumos usados">
+        <p class="muted insumos-note">Registra los productos consumidos durante el servicio. Al cerrar la ficha, el stock se descuenta automáticamente.</p>
+        <p v-if="insumosMsg" :class="insumosMsg.includes('Error') ? 'error' : 'success'">{{ insumosMsg }}</p>
+
+        <div v-if="ficha?.consumido_inventario" class="insumos-locked">
+          Inventario ya descontado al cerrar la ficha.
+          <ul v-if="insumos.length" class="insumos-list-ro">
+            <li v-for="ins in insumos" :key="ins.id_producto">
+              {{ ins.producto_nombre }} — {{ ins.unidades_usadas }} unid.
+            </li>
+          </ul>
+          <p v-else class="muted">Sin insumos registrados.</p>
+        </div>
+
+        <template v-else>
+          <div v-if="insumos.length" class="insumos-table">
+            <div v-for="(ins, idx) in insumos" :key="idx" class="insumo-row">
+              <select v-model="ins.id_producto" @change="onProductoChange(idx)" class="insumo-select">
+                <option value="">— Seleccionar producto —</option>
+                <option v-for="p in productosDisponibles" :key="p.id_producto" :value="p.id_producto">
+                  {{ p.nombre }} (stock: {{ p.stock_unidades }})
+                </option>
+              </select>
+              <input type="number" v-model.number="ins.unidades_usadas" min="0.5" step="0.5" class="insumo-qty" placeholder="0.5" @change="snapToHalf(idx)" />
+              <button class="remove-btn" @click="removeInsumoRow(idx)">✕</button>
+            </div>
+          </div>
+          <p v-else class="muted" style="margin-bottom:0.75rem">Sin insumos añadidos.</p>
+          <div class="insumos-actions">
+            <PrimaryButton variant="ghost" @click="addInsumoRow">+ Añadir insumo</PrimaryButton>
+            <PrimaryButton :loading="savingInsumos" @click="guardarInsumos">Guardar insumos</PrimaryButton>
+          </div>
+        </template>
       </AppCard>
 
       <!-- ── Ficha técnica ──────────────────────────────────────── -->
@@ -433,6 +526,25 @@ onMounted(loadFicha);
 }
 
 .center { text-align: center; padding: 2rem; }
+
+/* ── Insumos ── */
+.insumos-note { font-size: 0.85rem; margin-bottom: 0.75rem; }
+.insumos-locked {
+  background: #f0fdf4; border: 1px solid #86efac;
+  border-radius: 8px; padding: 0.85rem; font-size: 0.9rem; color: #166534;
+}
+.insumos-list-ro { margin: 0.5rem 0 0 1.25rem; }
+.insumos-table { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.75rem; }
+.insumo-row { display: flex; gap: 0.5rem; align-items: center; }
+.insumo-select { flex: 1; }
+.insumo-qty { width: 80px; }
+.remove-btn {
+  background: none; border: 1px solid var(--color-danger);
+  color: var(--color-danger); border-radius: 6px;
+  padding: 0.3rem 0.6rem; cursor: pointer; font-size: 0.8rem; line-height: 1;
+}
+.remove-btn:hover { background: #fee2e2; }
+.insumos-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
 
 .checklist-warning {
   margin: 0.5rem 0 0;

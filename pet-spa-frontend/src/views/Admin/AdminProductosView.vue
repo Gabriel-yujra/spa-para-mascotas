@@ -124,18 +124,18 @@ onMounted(load);
             <input v-model.number="form.precio" type="number" min="0" step="0.01" />
           </div>
           <div class="field">
-            <label>Stock actual</label>
-            <input v-model.number="form.stock_unidades" type="number" min="0" step="0.01" />
+            <label>Stock actual (unidades)</label>
+            <input v-model.number="form.stock_unidades" type="number" min="0" step="0.5" />
           </div>
           <div class="field">
-            <label>Stock mínimo</label>
-            <input v-model.number="form.stock_minimo" type="number" min="0" step="0.01" />
+            <label>Stock mínimo (unidades)</label>
+            <input v-model.number="form.stock_minimo" type="number" min="0" step="0.5" />
           </div>
         </div>
         <div class="row2">
           <div class="field">
-            <label>Unidad presentación</label>
-            <input v-model="form.unidad_presentacion" placeholder="ml, kg, unid..." />
+            <label>Presentación (opcional)</label>
+            <input v-model="form.unidad_presentacion" placeholder="Ej: frasco 500ml, bolsa 1kg…" />
           </div>
           <div class="field">
             <label>SKU</label>
@@ -173,7 +173,7 @@ onMounted(load);
               <td class="muted">{{ p.categoria }}</td>
               <td>Bs {{ Number(p.precio).toFixed(2) }}</td>
               <td :class="Number(p.stock_unidades) <= Number(p.stock_minimo) ? 'red' : ''">
-                {{ p.stock_unidades }} {{ p.unidad_presentacion || '' }}
+                {{ p.stock_unidades }} u.
               </td>
               <td class="muted">{{ p.stock_minimo }}</td>
               <td>

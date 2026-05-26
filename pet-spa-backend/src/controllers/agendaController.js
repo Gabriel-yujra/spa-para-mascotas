@@ -96,6 +96,18 @@ exports.createBloqueo = async (req, res) => {
   }
 
   try {
+    const citasActivas = await bloqueoAgendaModel.countCitasActivasEnFecha(
+      fecha,
+      id_trabajador || null
+    );
+    if (citasActivas > 0) {
+      const alcance = id_trabajador ? 'de este groomer' : 'programadas';
+      return res.status(409).json({
+        error: `No se puede bloquear este día: hay ${citasActivas} cita${citasActivas !== 1 ? 's' : ''} activa${citasActivas !== 1 ? 's' : ''} ${alcance}. Reprograme o cancele las citas primero desde la bandeja de citas.`,
+        citas_activas: citasActivas,
+      });
+    }
+
     const bloqueo = await bloqueoAgendaModel.createBloqueo({
       fecha,
       motivo: motivo || null,
