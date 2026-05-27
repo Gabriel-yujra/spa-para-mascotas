@@ -274,6 +274,16 @@ async function guardarInsumos() {
       productosExcedidos.value   = [];
       insumosMsg.value = 'Insumos guardados correctamente.';
     }
+    // Sync ficha ref so the "✔ Motivo registrado" hint shows without a page reload
+    if (ficha.value) {
+      ficha.value = {
+        ...ficha.value,
+        consumo_elevado: !!data.consumo_elevado,
+        motivo_consumo_elevado: (data.consumo_elevado && !data.necesita_motivo)
+          ? (motivoConsumoElevado.value.trim() || null)
+          : null,
+      };
+    }
   } catch (err) {
     insumosMsg.value = err.response?.data?.error || 'Error al guardar insumos';
   } finally {
