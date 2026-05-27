@@ -2,10 +2,10 @@
 import http from './http';
 
 export const agendaApi = {
-  // GET /api/agenda/disponibilidad?fecha=&id_servicio=&id_mascota=
-  getDisponibilidad({ fecha, id_servicio, id_mascota }) {
+  // GET /api/agenda/disponibilidad?fecha=&id_servicio=&id_mascota=[&id_trabajador=]
+  getDisponibilidad({ fecha, id_servicio, id_mascota, id_trabajador }) {
     return http.get('/agenda/disponibilidad', {
-      params: { fecha, id_servicio, id_mascota },
+      params: { fecha, id_servicio, id_mascota, id_trabajador },
     }).then((r) => r.data);
   },
 

@@ -15,4 +15,9 @@ export const reportesApi = {
   getServiciosPorGroomer(params = {}) {
     return http.get('/reportes/servicios-por-groomer', { params }).then((r) => r.data);
   },
+
+  // GET /api/reportes/consumo-elevado?desde=&hasta=
+  getConsumoElevado(params = {}) {
+    return http.get('/reportes/consumo-elevado', { params }).then((r) => r.data);
+  },
 };

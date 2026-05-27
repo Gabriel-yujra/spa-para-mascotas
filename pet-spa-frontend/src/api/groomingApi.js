@@ -32,7 +32,20 @@ export const groomingApi = {
   },
 
   // PUT /api/grooming/fichas/:idCita/insumos  (GROOMER)
-  saveInsumos(idCita, items) {
-    return http.put(`/grooming/fichas/${idCita}/insumos`, { items }).then((r) => r.data);
+  saveInsumos(idCita, items, motivoConsumoElevado) {
+    const body = { items };
+    if (motivoConsumoElevado) body.motivo_consumo_elevado = motivoConsumoElevado;
+    return http.put(`/grooming/fichas/${idCita}/insumos`, body).then((r) => r.data);
+  },
+
+  // POST /api/grooming/fichas/:idCita/fotos  (GROOMER)
+  // tipo: 'llegada' | 'salida'
+  uploadFoto(idCita, file, tipo) {
+    const form = new FormData();
+    form.append('foto', file);
+    form.append('tipo', tipo);
+    return http.post(`/grooming/fichas/${idCita}/fotos`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then((r) => r.data);
   },
 };

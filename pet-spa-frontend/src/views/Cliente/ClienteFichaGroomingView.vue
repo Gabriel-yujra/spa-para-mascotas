@@ -20,6 +20,7 @@ const router = useRouter();
 const idCita      = route.params.idCita;
 const loading     = ref(false);
 const errorMsg    = ref('');
+const lightboxSrc = ref(null);
 const mascota     = ref(null);
 const resumen     = ref(null);
 const checklist   = ref([]);
@@ -134,17 +135,44 @@ onMounted(loadFicha);
       </AppCard>
 
       <!-- ── Fotos ──────────────────────────────────────────── -->
-      <AppCard v-if="fotos.length" title="Fotos del servicio">
-        <div class="fotos-grid">
-          <div v-for="foto in fotos" :key="foto.id_foto" class="foto-item">
-            <img :src="foto.url_foto" :alt="foto.tipo" class="foto-img" />
-            <span class="foto-tipo">{{ foto.tipo }}</span>
-          </div>
+      <AppCard v-if="fotos.length" title="Antes y después">
+        <div class="fotos-antes-despues">
+          <template v-for="tipo in ['llegada', 'salida']" :key="tipo">
+            <div
+              v-if="fotos.find(f => f.tipo === tipo)"
+              class="foto-ad-item"
+            >
+              <span class="foto-ad-label">
+                {{ tipo === 'llegada' ? '📥 Antes' : '📤 Después' }}
+              </span>
+              <img
+                :src="`${BACKEND_URL}${fotos.find(f => f.tipo === tipo).url_foto}`"
+                :alt="tipo"
+                class="foto-ad-img foto-clickable"
+                @click="lightboxSrc = `${BACKEND_URL}${fotos.find(f => f.tipo === tipo).url_foto}`"
+              />
+            </div>
+          </template>
+          <!-- Any other photo types (in case there are extras) -->
+          <template v-for="foto in fotos.filter(f => f.tipo !== 'llegada' && f.tipo !== 'salida')" :key="foto.id_foto">
+            <div class="foto-ad-item">
+              <span class="foto-ad-label">{{ foto.tipo }}</span>
+              <img :src="`${BACKEND_URL}${foto.url_foto}`" :alt="foto.tipo" class="foto-ad-img foto-clickable" @click="lightboxSrc = `${BACKEND_URL}${foto.url_foto}`" />
+            </div>
+          </template>
         </div>
       </AppCard>
 
     </template>
   </div>
+
+  <!-- ── Lightbox ─────────────────────────────────────────── -->
+  <Teleport to="body">
+    <div v-if="lightboxSrc" class="lightbox-overlay" @click="lightboxSrc = null">
+      <button class="lightbox-close" @click.stop="lightboxSrc = null">✕</button>
+      <img :src="lightboxSrc" class="lightbox-img" @click.stop />
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -205,10 +233,53 @@ onMounted(loadFicha);
 }
 
 /* ── Fotos ── */
-.fotos-grid { display: flex; flex-wrap: wrap; gap: 0.85rem; }
-.foto-item  { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; }
-.foto-img   { width: 160px; height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid var(--color-card-border); }
-.foto-tipo  { font-size: 0.75rem; font-weight: 700; color: var(--color-text-soft); text-transform: capitalize; }
+.fotos-antes-despues {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+.foto-ad-item { display: flex; flex-direction: column; gap: 0.4rem; }
+.foto-ad-label { font-size: 0.88rem; font-weight: 700; color: var(--color-text-soft); }
+.foto-ad-img   { width: 100%; height: 160px; object-fit: cover; border-radius: 10px; border: 1px solid var(--color-card-border); }
+.foto-clickable { cursor: zoom-in; }
+
+/* ── Lightbox ── */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  cursor: zoom-out;
+}
+.lightbox-img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 10px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+  cursor: default;
+}
+.lightbox-close {
+  position: absolute;
+  top: 1rem;
+  right: 1.25rem;
+  background: rgba(255,255,255,0.15);
+  border: none;
+  color: #fff;
+  font-size: 1.25rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.lightbox-close:hover { background: rgba(255,255,255,0.3); }
 
 .center { text-align: center; padding: 1.5rem; }
 </style>

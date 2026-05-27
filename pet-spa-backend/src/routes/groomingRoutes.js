@@ -9,6 +9,7 @@ const authRequired = require('../middlewares/authRequired');
 const requireRole = require('../middlewares/requireRole');
 const mustNotForcePasswordChange = require('../middlewares/mustNotForcePasswordChange');
 const { ROLES } = require('../utils/rolesUtils');
+const multerGrooming = require('../config/multerGrooming');
 
 module.exports = function groomingRoutes(app) {
   // ── Groomer: agenda ──────────────────────────────────────────────────────
@@ -55,6 +56,17 @@ module.exports = function groomingRoutes(app) {
     mustNotForcePasswordChange,
     requireRole([ROLES.GROOMER]),
     groomingController.updateFicha
+  );
+
+  // ── Fotos de servicio (GROOMER — own citas) ──────────────────────────────────
+  // POST /api/grooming/fichas/:idCita/fotos  — multipart, field "foto" + body "tipo"
+  app.post(
+    '/api/grooming/fichas/:idCita/fotos',
+    authRequired,
+    mustNotForcePasswordChange,
+    requireRole([ROLES.GROOMER]),
+    multerGrooming.single('foto'),
+    groomingController.uploadFoto
   );
 
   // ── Insumos (IMPORTANT: registered before the bare :idCita routes above) ────

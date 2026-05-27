@@ -54,7 +54,7 @@ function abrirPago(cita) {
 async function toggleQR() {
   pagoMostrarQR.value = !pagoMostrarQR.value;
   if (pagoMostrarQR.value && !qrDataUrl.value && pagoCita.value) {
-    const texto = `PetSpa|cita:${pagoCita.value.id_cita}|monto:${Number(pagoCita.value.precio || 0).toFixed(2)}`;
+    const texto = `PetSpa|cita:${pagoCita.value.id_cita}|monto:${Number(pagoCita.value.precio_calculado ?? pagoCita.value.precio ?? 0).toFixed(2)}`;
     qrDataUrl.value = await QRCode.toDataURL(texto, {
       width: 200,
       margin: 2,

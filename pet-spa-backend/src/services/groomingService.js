@@ -5,6 +5,7 @@ const db = require('../config/db');
 
 const trabajadorModel        = require('../models/trabajadorModel');
 const citaModel              = require('../models/citaModel');
+const servicioModel          = require('../models/servicioModel');
 const groomingFichaModel     = require('../models/groomingFichaModel');
 const groomingChecklistModel = require('../models/groomingChecklistModel');
 const groomingInsumosModel   = require('../models/groomingInsumosModel');
@@ -13,6 +14,33 @@ const userModel              = require('../models/userModel');
 const { ESTADOS, canTransition }       = require('../utils/citaEstados');
 const { sendListoParaRecoger }         = require('../config/mail');
 const { enviarAlertaStockBajo }        = require('./inventarioAlertaService');
+const { calcularPrecioAjustado }       = require('./agendaService');
+
+// Order of tamano values — used to prevent downgrading
+const TAMANO_ORDEN = { pequeno: 1, mediano: 2, grande: 3, gigante: 4 };
+
+// Max units allowed per individual product (not a global sum), by size
+const MAX_UNIDADES_POR_PRODUCTO_FALLBACK = { pequeno: 1.0, mediano: 1.0, grande: 1.5, gigante: 2.0 };
+// Default max distinct product types; override via _max_tipos key in unidades_base_por_tamano JSONB
+const MAX_PRODUCTOS_DISTINTOS_DEFAULT = 5;
+
+function getMaxUnidadesPorProducto(servicio, tamano) {
+  const tabla = servicio?.unidades_base_por_tamano;
+  if (tabla && typeof tabla === 'object' && tamano) {
+    const k = String(tamano).toLowerCase();
+    if (typeof tabla[k] === 'number' && tabla[k] > 0) return tabla[k];
+  }
+  return MAX_UNIDADES_POR_PRODUCTO_FALLBACK[tamano] ?? 1.0;
+}
+
+function getMaxProductosDistintos(servicio) {
+  const tabla = servicio?.unidades_base_por_tamano;
+  if (tabla && typeof tabla === 'object') {
+    const v = tabla['_max_tipos'];
+    if (typeof v === 'number' && v > 0) return v;
+  }
+  return MAX_PRODUCTOS_DISTINTOS_DEFAULT;
+}
 
 class ServiceError extends Error {
   constructor(status, message) { super(message); this.status = status; }
@@ -108,14 +136,22 @@ async function getOrCreateFichaForCita(idUsuario, idCita) {
     ? await mascotaModel.findMascotaById(cita.id_mascota)
     : null;
 
-  const ficha = existing || await groomingFichaModel.createFichaForCita(idCita, {});
+  // Pre-fill tamano from mascota when creating the ficha for the first time
+  const fichaInitData = existing ? {} : {
+    tamano_mascota:          mascota?.tamano || null,
+    tamano_original_mascota: mascota?.tamano || null,
+  };
+  const ficha = existing || await groomingFichaModel.createFichaForCita(idCita, fichaInitData);
 
-  const [savedChecklist, allItems, fotos, insumos] = await Promise.all([
+  const [savedChecklist, allItems, fotos, insumos, servicio] = await Promise.all([
     groomingChecklistModel.getChecklistByFichaId(ficha.id_ficha),
     groomingChecklistModel.getAllItems(),
     groomingFichaModel.getFotosByFichaId(ficha.id_ficha),
     groomingInsumosModel.findInsumosByFicha(ficha.id_ficha),
+    cita?.id_servicio ? servicioModel.findServicioParaAgenda(cita.id_servicio) : Promise.resolve(null),
   ]);
+
+  const tamanoFicha = ficha.tamano_mascota || mascota?.tamano || null;
 
   return {
     ficha,
@@ -123,11 +159,15 @@ async function getOrCreateFichaForCita(idUsuario, idCita) {
     checklist: mergeChecklist(allItems, savedChecklist),
     fotos,
     insumos,
+    estandar_unidades_producto: getMaxUnidadesPorProducto(servicio, tamanoFicha),
+    max_tipos:                  getMaxProductosDistintos(servicio),
     cita: cita ? {
-      id_cita:       cita.id_cita,
-      estado_global: cita.estado_global,
-      fecha_cita:    cita.fecha_cita,
+      id_cita:         cita.id_cita,
+      estado_global:   cita.estado_global,
+      fecha_cita:      cita.fecha_cita,
       servicio_nombre: cita.servicio_nombre,
+      precio_final:    cita.precio_calculado != null ? Number(cita.precio_calculado) : (cita.precio != null ? Number(cita.precio) : null),
+      precio_ajustado: cita.precio_calculado != null,
     } : null,
   };
 }
@@ -148,6 +188,36 @@ async function updateFichaFromGroomer(idUsuario, idCita, data) {
     fecha_cierre,
     consumido_inventario,
   } = data || {};
+
+  // ── Tamano validation + price recalculation ───────────────────────────────
+  let nuevoPrecioCalculado;
+
+  if (tamano_mascota !== undefined && tamano_mascota) {
+    const fichaActual = await groomingFichaModel.getFichaByCitaId(idCita);
+    const tamanoOriginal = fichaActual?.tamano_original_mascota || null;
+
+    if (tamanoOriginal) {
+      const ordenActual   = TAMANO_ORDEN[tamano_mascota]  || 0;
+      const ordenOriginal = TAMANO_ORDEN[tamanoOriginal]  || 0;
+      if (ordenActual < ordenOriginal) {
+        throw new ServiceError(
+          422,
+          `No se puede reducir el tamaño a '${tamano_mascota}'. El tamaño original registrado es '${tamanoOriginal}'. Solo se permite confirmar un tamaño igual o mayor.`
+        );
+      }
+    }
+
+    // If tamano changed (or original not set), recalculate price
+    if (!tamanoOriginal || tamano_mascota !== fichaActual?.tamano_mascota) {
+      const citaParaPrecio = await citaModel.findCitaById(idCita);
+      if (citaParaPrecio?.id_servicio) {
+        const servicio = await servicioModel.findServicioParaAgenda(citaParaPrecio.id_servicio);
+        if (servicio) {
+          nuevoPrecioCalculado = calcularPrecioAjustado(servicio, tamano_mascota);
+        }
+      }
+    }
+  }
 
   const fichaFields = {
     ...(estado_ingreso       !== undefined && { estado_ingreso }),
@@ -173,7 +243,11 @@ async function updateFichaFromGroomer(idUsuario, idCita, data) {
     if (hasChecklist && ficha) {
       await groomingChecklistModel.upsertChecklistItems(ficha.id_ficha, checklist);
     }
-    return { ficha };
+    let citaActualizada = null;
+    if (nuevoPrecioCalculado !== undefined) {
+      citaActualizada = await citaModel.updateCitaCampos(idCita, { precio_calculado: nuevoPrecioCalculado });
+    }
+    return { ficha, ...(citaActualizada && { precio_calculado: nuevoPrecioCalculado }) };
   }
 
   // State change requested → validate, then run in a transaction
@@ -216,11 +290,12 @@ async function updateFichaFromGroomer(idUsuario, idCita, data) {
   try {
     await client.query('BEGIN');
 
-    const citaActualizada = await citaModel.updateCitaCampos(
-      idCita,
-      { estado_global: nuevo_estado_global, terminado_por_empleado: trabajador.id_usuario },
-      client
-    );
+    const camposCita = {
+      estado_global: nuevo_estado_global,
+      terminado_por_empleado: trabajador.id_usuario,
+      ...(nuevoPrecioCalculado !== undefined && { precio_calculado: nuevoPrecioCalculado }),
+    };
+    const citaActualizada = await citaModel.updateCitaCampos(idCita, camposCita, client);
 
     let ficha = await groomingFichaModel.getFichaByCitaId(idCita);
     const yaConsumo = ficha?.consumido_inventario === true;
@@ -309,7 +384,7 @@ async function getInsumosForCita(idUsuario, idCita) {
   return { insumos, ficha_id: ficha.id_ficha };
 }
 
-async function saveInsumosForCita(idUsuario, idCita, items) {
+async function saveInsumosForCita(idUsuario, idCita, items, motivo_consumo_elevado) {
   const trabajador = await resolverTrabajador(idUsuario);
   await assertCitaDelGroomer(idCita, trabajador.id_trabajador);
 
@@ -323,7 +398,96 @@ async function saveInsumosForCita(idUsuario, idCita, items) {
   }
 
   const insumos = await groomingInsumosModel.replaceInsumosForFicha(ficha.id_ficha, items);
-  return { insumos };
+
+  // ── Per-product consumption check ────────────────────────────────────────
+  const cita   = await citaModel.findCitaById(idCita);
+  const tamano = ficha.tamano_mascota || null;
+
+  let servicio = null;
+  if (cita?.id_servicio) {
+    servicio = await servicioModel.findServicioParaAgenda(cita.id_servicio);
+  }
+  const maxUnidades = getMaxUnidadesPorProducto(servicio, tamano);
+  const maxTipos    = getMaxProductosDistintos(servicio);
+
+  // Aggregate units per product (handles multiple rows with same id_producto)
+  const consumoPorProducto = {};
+  for (const ins of insumos) {
+    const id = String(ins.id_producto);
+    consumoPorProducto[id] = (consumoPorProducto[id] || 0) + parseFloat(ins.unidades_usadas || 0);
+  }
+
+  const cantTipos      = Object.keys(consumoPorProducto).length;
+  const tiposExcedidos = cantTipos > maxTipos;
+
+  const TOLERANCIA = 0.5;
+  const productosExcedidos = [];
+  for (const [id_producto, usadas] of Object.entries(consumoPorProducto)) {
+    if (usadas > maxUnidades + TOLERANCIA) {
+      const info = insumos.find((i) => String(i.id_producto) === id_producto);
+      productosExcedidos.push({
+        id_producto,
+        nombre: info?.producto_nombre || `Producto #${id_producto}`,
+        usadas: parseFloat(usadas.toFixed(1)),
+        maximo: maxUnidades,
+      });
+    }
+  }
+
+  const consumoElevado = productosExcedidos.length > 0 || tiposExcedidos;
+
+  if (consumoElevado) {
+    const motivoTrimmed = motivo_consumo_elevado ? String(motivo_consumo_elevado).trim() : '';
+    const fichaUpdate = { consumo_elevado: true };
+    if (motivoTrimmed) fichaUpdate.motivo_consumo_elevado = motivoTrimmed;
+    await groomingFichaModel.updateFicha(ficha.id_ficha, fichaUpdate);
+    return {
+      insumos,
+      consumo_elevado:           true,
+      necesita_motivo:           !motivoTrimmed,
+      productos_excedidos:       productosExcedidos,
+      tipos_excedidos:           tiposExcedidos,
+      tipos_usados:              cantTipos,
+      max_tipos:                 maxTipos,
+      max_unidades_por_producto: maxUnidades,
+    };
+  }
+
+  // Normal consumption → clear any previous alert
+  await groomingFichaModel.updateFicha(ficha.id_ficha, {
+    consumo_elevado:        false,
+    motivo_consumo_elevado: null,
+  });
+  return {
+    insumos,
+    consumo_elevado:           false,
+    max_unidades_por_producto: maxUnidades,
+  };
+}
+
+// ── Foto upload ───────────────────────────────────────────────────────────────
+
+const TIPOS_FOTO_VALIDOS = new Set(['llegada', 'salida']);
+
+async function uploadFotoForCita(idUsuario, idCita, tipo, filePath) {
+  const trabajador = await resolverTrabajador(idUsuario);
+  await assertCitaDelGroomer(idCita, trabajador.id_trabajador);
+
+  if (!TIPOS_FOTO_VALIDOS.has(tipo)) {
+    throw new ServiceError(400, "tipo debe ser 'llegada' o 'salida'");
+  }
+  if (!filePath) {
+    throw new ServiceError(400, 'No se recibió ningún archivo');
+  }
+
+  let ficha = await groomingFichaModel.getFichaByCitaId(idCita);
+  if (!ficha) {
+    ficha = await groomingFichaModel.createFichaForCita(idCita, {});
+  }
+
+  const url_foto = `/uploads/grooming/${require('path').basename(filePath)}`;
+  const foto = await groomingFichaModel.createFoto(ficha.id_ficha, tipo, url_foto);
+  return { foto };
 }
 
 // ── Read-only views ───────────────────────────────────────────────────────────
@@ -430,6 +594,7 @@ module.exports = {
   updateFichaFromGroomer,
   getInsumosForCita,
   saveInsumosForCita,
+  uploadFotoForCita,
   getFichaForAdmin,
   getFichaForCliente,
 };

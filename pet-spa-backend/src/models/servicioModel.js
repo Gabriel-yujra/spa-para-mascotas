@@ -5,7 +5,7 @@ async function findServicioParaAgenda(id_servicio) {
   const { rows } = await db.query(
     `SELECT id_servicio, nombre, duracion_estimada_min, precio,
             activo, permite_doble_booking, requiere_bloqueo_consecutivo,
-            factor_tamano_raza
+            factor_tamano_raza, unidades_base_por_tamano
        FROM servicios
       WHERE id_servicio = $1
       LIMIT 1`,

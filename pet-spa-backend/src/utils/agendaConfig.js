@@ -17,6 +17,10 @@ const HORA_APERTURA   = normalizeHHMM(process.env.SPA_HORA_APERTURA || '09:00');
 const HORA_CIERRE     = normalizeHHMM(process.env.SPA_HORA_CIERRE   || '18:00');
 const SLOT_GRAIN_MIN  = parseInt(process.env.SPA_SLOT_GRAIN_MIN || '30', 10);
 
+// Máximo de citas activas que puede tener un groomer en un mismo día.
+// Configurable con SPA_MAX_CITAS_DIARIAS. Si en el futuro viene de BD, solo cambia este módulo.
+const MAX_CITAS_DIARIAS_GROOMER = parseInt(process.env.SPA_MAX_CITAS_DIARIAS || '6', 10);
+
 // Por defecto lun-vie (1..5). Domingo=0.
 const DIAS_LABORALES = (process.env.SPA_DIAS_LABORALES || '1,2,3,4,5')
   .split(',')
@@ -36,6 +40,7 @@ module.exports = {
   HORA_APERTURA,
   HORA_CIERRE,
   SLOT_GRAIN_MIN,
+  MAX_CITAS_DIARIAS_GROOMER,
   DIAS_LABORALES,
   esDiaLaboral,
 };

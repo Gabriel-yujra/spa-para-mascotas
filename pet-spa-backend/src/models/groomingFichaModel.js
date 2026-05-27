@@ -5,8 +5,10 @@ const db = require('../config/db');
 
 const CAMPOS_FICHA = `
   fg.id_ficha, fg.id_cita,
-  fg.estado_ingreso, fg.observaciones, fg.recomendaciones, fg.tamano_mascota,
+  fg.estado_ingreso, fg.observaciones, fg.recomendaciones,
+  fg.tamano_mascota, fg.tamano_original_mascota,
   fg.temperatura, fg.notas_internas, fg.consumido_inventario,
+  fg.consumo_elevado, fg.motivo_consumo_elevado,
   fg.fecha_creacion, fg.fecha_cierre
 `;
 
@@ -32,21 +34,26 @@ async function getFichaByCitaId(idCita) {
  */
 async function createFichaForCita(idCita, data = {}, client = db) {
   const {
-    estado_ingreso    = null,
-    observaciones     = null,
-    recomendaciones   = null,
-    tamano_mascota    = null,
-    temperatura       = null,
-    notas_internas    = null,
+    estado_ingreso          = null,
+    observaciones           = null,
+    recomendaciones         = null,
+    tamano_mascota          = null,
+    tamano_original_mascota = null,
+    temperatura             = null,
+    notas_internas          = null,
   } = data;
   const { rows } = await client.query(
     `INSERT INTO fichas_grooming
-       (id_cita, estado_ingreso, observaciones, recomendaciones, tamano_mascota, temperatura, notas_internas)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+       (id_cita, estado_ingreso, observaciones, recomendaciones,
+        tamano_mascota, tamano_original_mascota, temperatura, notas_internas)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      RETURNING id_ficha, id_cita, estado_ingreso, observaciones, recomendaciones,
-               tamano_mascota, temperatura, notas_internas, consumido_inventario,
+               tamano_mascota, tamano_original_mascota,
+               temperatura, notas_internas, consumido_inventario,
+               consumo_elevado, motivo_consumo_elevado,
                fecha_creacion, fecha_cierre`,
-    [idCita, estado_ingreso, observaciones, recomendaciones, tamano_mascota, temperatura, notas_internas]
+    [idCita, estado_ingreso, observaciones, recomendaciones,
+     tamano_mascota, tamano_original_mascota, temperatura, notas_internas]
   );
   return rows[0];
 }
@@ -58,8 +65,10 @@ async function createFichaForCita(idCita, data = {}, client = db) {
  */
 async function updateFicha(idFicha, fields, client = db) {
   const allowed = [
-    'estado_ingreso', 'observaciones', 'recomendaciones', 'tamano_mascota',
+    'estado_ingreso', 'observaciones', 'recomendaciones',
+    'tamano_mascota', 'tamano_original_mascota',
     'temperatura', 'notas_internas', 'fecha_cierre', 'consumido_inventario',
+    'consumo_elevado', 'motivo_consumo_elevado',
   ];
   const sets = [];
   const values = [];
@@ -79,6 +88,7 @@ async function updateFicha(idFicha, fields, client = db) {
       WHERE id_ficha = $${idx}
       RETURNING id_ficha, id_cita, estado_ingreso, observaciones, recomendaciones,
                 tamano_mascota, temperatura, notas_internas, consumido_inventario,
+                consumo_elevado, motivo_consumo_elevado,
                 fecha_creacion, fecha_cierre`,
     values
   );
@@ -99,9 +109,25 @@ async function getFotosByFichaId(idFicha) {
   return rows;
 }
 
+/**
+ * Insert a new photo record for a ficha.
+ * tipo: 'llegada' | 'salida' (or any string the caller passes)
+ * url_foto: path relative to the server root, e.g. '/uploads/grooming/abc.jpg'
+ */
+async function createFoto(idFicha, tipo, url_foto, client = db) {
+  const { rows } = await client.query(
+    `INSERT INTO fotos_grooming (id_ficha, tipo, url_foto)
+     VALUES ($1, $2, $3)
+     RETURNING id_foto, id_ficha, tipo, url_foto, fecha_registro`,
+    [idFicha, tipo, url_foto]
+  );
+  return rows[0];
+}
+
 module.exports = {
   getFichaByCitaId,
   createFichaForCita,
   updateFicha,
   getFotosByFichaId,
+  createFoto,
 };
