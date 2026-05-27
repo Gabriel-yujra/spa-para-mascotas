@@ -181,9 +181,8 @@ onMounted(loadAll);
           <div class="field">
             <label>Turno</label>
             <select v-model="newEmp.turno">
-              <option value="mañana">Mañana</option>
-              <option value="tarde">Tarde</option>
-              <option value="noche">Noche</option>
+              <option value="mañana">Mañana (09:00–13:00)</option>
+              <option value="tarde">Tarde (14:00–18:00)</option>
             </select>
           </div>
           <div class="field">

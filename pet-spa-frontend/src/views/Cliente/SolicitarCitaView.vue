@@ -14,12 +14,13 @@ const router = useRouter();
 const mascotas  = ref([]);
 const servicios = ref([]);
 const slots     = ref([]);
+const groomers  = ref([]);   // lista extraída del primer fetch de slots (sin filtro)
 
 // ── Form selections ───────────────────────────────────────────
 const selectedMascota          = ref('');
 const selectedServicio         = ref('');
 const selectedFecha            = ref('');
-const selectedSlot             = ref(null);   // { hora_inicio, hora_fin, groomers_disponibles }
+const selectedSlot             = ref(null);
 const selectedGroomerPreferido = ref('');
 
 // ── UI state ──────────────────────────────────────────────────
@@ -49,18 +50,29 @@ function slotBadgeClass(s) {
   return s.estado === 'parcial' ? 'badge-warning' : 'badge-success';
 }
 
-// ── Watchers: auto-load slots when all 3 selections are ready ─
+const selectedGroomerNombre = computed(() => {
+  if (!selectedGroomerPreferido.value) return '';
+  return groomers.value.find((g) => g.id_trabajador === selectedGroomerPreferido.value)?.nombre || '';
+});
+
+// ── Watchers ──────────────────────────────────────────────────
+// Cuando cambia mascota/servicio/fecha → reset completo incluyendo groomer y su lista
 watch([selectedMascota, selectedServicio, selectedFecha], ([m, s, f]) => {
   slots.value = [];
+  groomers.value = [];
   selectedSlot.value = null;
   selectedGroomerPreferido.value = '';
   slotsError.value = '';
   if (m && s && f) fetchSlots();
 });
 
-// Resetear groomer preferido cuando el cliente cambia de slot
-watch(selectedSlot, () => {
-  selectedGroomerPreferido.value = '';
+// Cuando el cliente elige (o quita) un groomer preferido → refetch filtrado
+watch(selectedGroomerPreferido, () => {
+  if (!canLoadSlots.value) return;
+  slots.value = [];
+  selectedSlot.value = null;
+  slotsError.value = '';
+  fetchSlots();
 });
 
 // ── Load mascotas + servicios on mount ────────────────────────
@@ -88,18 +100,38 @@ async function fetchSlots() {
   slots.value = [];
   selectedSlot.value = null;
   try {
-    const data = await agendaApi.getDisponibilidad({
-      fecha:        selectedFecha.value,
-      id_servicio:  selectedServicio.value,
-      id_mascota:   selectedMascota.value,
-    });
+    const params = {
+      fecha:       selectedFecha.value,
+      id_servicio: selectedServicio.value,
+      id_mascota:  selectedMascota.value,
+    };
+    if (selectedGroomerPreferido.value) {
+      params.id_trabajador = selectedGroomerPreferido.value;
+    }
+
+    const data = await agendaApi.getDisponibilidad(params);
     if (!data.dia_laboral) {
       slotsError.value = 'Ese día no es laborable o tiene un bloqueo. Elige otra fecha.';
       return;
     }
     slots.value = data.slots || [];
+
+    // Construir la lista de groomers únicamente en el fetch sin filtro.
+    // Esto da la lista de groomers que tienen al menos un slot disponible ese día.
+    if (!selectedGroomerPreferido.value) {
+      const groomerMap = new Map();
+      for (const slot of slots.value) {
+        for (const g of (slot.groomers_disponibles || [])) {
+          if (!groomerMap.has(g.id_trabajador)) groomerMap.set(g.id_trabajador, g);
+        }
+      }
+      groomers.value = [...groomerMap.values()];
+    }
+
     if (availableSlots.value.length === 0) {
-      slotsError.value = 'No hay horarios disponibles para esa fecha. Prueba otro día.';
+      slotsError.value = selectedGroomerPreferido.value
+        ? 'El groomer seleccionado no tiene horarios disponibles para esta fecha. Elige otro día o selecciona otro groomer.'
+        : 'No hay horarios disponibles para esa fecha. Prueba otro día.';
     }
   } catch (err) {
     slotsError.value = err.response?.data?.error || 'Error al consultar disponibilidad';
@@ -128,12 +160,12 @@ async function onSubmit() {
     }
     await citaApi.crearCita(payload);
     successMsg.value = '✅ ¡Cita solicitada! Queda pendiente de confirmación por recepción.';
-    // Reset form
     selectedMascota.value          = '';
     selectedServicio.value         = '';
     selectedFecha.value            = '';
     selectedSlot.value             = null;
     selectedGroomerPreferido.value = '';
+    groomers.value                 = [];
     slots.value                    = [];
   } catch (err) {
     errorMsg.value = err.response?.data?.error || err.response?.data?.message || 'Error al solicitar la cita';
@@ -152,7 +184,7 @@ onMounted(loadInit);
       <p class="muted">Elige tu mascota, el servicio y el horario que prefieras</p>
     </header>
 
-    <p v-if="errorMsg"  class="error">{{ errorMsg }}</p>
+    <p v-if="errorMsg"   class="error">{{ errorMsg }}</p>
     <p v-if="successMsg" class="success">{{ successMsg }}</p>
 
     <div v-if="loadingInit" class="state">Cargando datos…</div>
@@ -213,44 +245,70 @@ onMounted(loadInit);
         </div>
       </AppCard>
 
-      <!-- ── Step 3: Time slot ─────────────────────────────── -->
+      <!-- ── Step 3: Groomer (opcional) + Horario ──────────── -->
       <AppCard title="3. Elige el horario">
         <div v-if="loadingSlots" class="state">Buscando horarios disponibles…</div>
         <p v-else-if="slotsError" class="warn">{{ slotsError }}</p>
         <p v-else-if="!canLoadSlots" class="muted">
           Completa los pasos anteriores para ver los horarios disponibles.
         </p>
-        <div v-else-if="availableSlots.length" class="slots-grid">
-          <button
-            v-for="s in availableSlots"
-            :key="s.hora_inicio"
-            class="slot-btn"
-            :class="{ 'slot-btn--selected': selectedSlot?.hora_inicio === s.hora_inicio }"
-            type="button"
-            @click="selectedSlot = s"
-          >
-            <span class="slot-time">{{ slotLabel(s) }}</span>
-            <span class="slot-estado-row">
-              <span class="badge" :class="slotBadgeClass(s)">
-                {{ s.estado === 'parcial' ? 'Parcialmente ocupado' : 'Libre' }}
-              </span>
-              <span
-                v-if="s.estado === 'parcial'"
-                class="slot-info-icon"
-                title="Este horario está parcialmente ocupado: hay otro servicio programado cerca de este rango. El servicio podría comenzar unos minutos más tarde o terminar un poco después, incluyendo el tiempo de limpieza de la estación de trabajo."
-              >ℹ</span>
-            </span>
-          </button>
-        </div>
 
-        <div
-          v-if="selectedSlot?.estado === 'parcial'"
-          class="slot-parcial-note"
-        >
-          <b>ℹ Horario parcialmente ocupado</b> — Hay otro servicio programado cerca
-          de este rango. Tu cita podría comenzar unos minutos más tarde o terminar un
-          poco después, incluyendo el tiempo de limpieza de la estación de trabajo.
-        </div>
+        <template v-else>
+          <!-- Selector de groomer preferido: aparece cuando hay groomers disponibles ese día -->
+          <div v-if="groomers.length > 0" class="field groomer-filter-field">
+            <label>
+              Groomer preferido
+              <span class="muted">(opcional)</span>
+            </label>
+            <select v-model="selectedGroomerPreferido">
+              <option value="">Sin preferencia — mostrar todos los horarios</option>
+              <option
+                v-for="g in groomers"
+                :key="g.id_trabajador"
+                :value="g.id_trabajador"
+              >
+                {{ g.nombre }}{{ g.especialidad ? ` · ${g.especialidad}` : '' }}
+              </option>
+            </select>
+            <small class="muted">
+              Al elegir un groomer, solo verás los horarios disponibles para él/ella
+              según su turno.
+            </small>
+          </div>
+
+          <!-- Grid de slots -->
+          <div v-if="availableSlots.length" class="slots-grid">
+            <button
+              v-for="s in availableSlots"
+              :key="s.hora_inicio"
+              class="slot-btn"
+              :class="{ 'slot-btn--selected': selectedSlot?.hora_inicio === s.hora_inicio }"
+              type="button"
+              @click="selectedSlot = s"
+            >
+              <span class="slot-time">{{ slotLabel(s) }}</span>
+              <span class="slot-estado-row">
+                <span class="badge" :class="slotBadgeClass(s)">
+                  {{ s.estado === 'parcial' ? 'Parcialmente ocupado' : 'Libre' }}
+                </span>
+                <span
+                  v-if="s.estado === 'parcial'"
+                  class="slot-info-icon"
+                  title="Este horario está parcialmente ocupado: hay otro servicio programado cerca de este rango. El servicio podría comenzar unos minutos más tarde o terminar un poco después, incluyendo el tiempo de limpieza de la estación de trabajo."
+                >ℹ</span>
+              </span>
+            </button>
+          </div>
+
+          <div
+            v-if="selectedSlot?.estado === 'parcial'"
+            class="slot-parcial-note"
+          >
+            <b>ℹ Horario parcialmente ocupado</b> — Hay otro servicio programado cerca
+            de este rango. Tu cita podría comenzar unos minutos más tarde o terminar un
+            poco después, incluyendo el tiempo de limpieza de la estación de trabajo.
+          </div>
+        </template>
       </AppCard>
 
       <!-- ── Summary + Submit ──────────────────────────────── -->
@@ -281,30 +339,10 @@ onMounted(loadInit);
             <span class="summary-label">Horario:</span>
             <span>{{ slotLabel(selectedSlot) }}</span>
           </div>
-        </div>
-
-        <!-- Groomer preferido (opcional) -->
-        <div
-          v-if="selectedSlot?.groomers_disponibles?.length"
-          class="field groomer-pref-field"
-        >
-          <label>
-            Groomer preferido
-            <span class="muted">(opcional)</span>
-          </label>
-          <select v-model="selectedGroomerPreferido">
-            <option value="">Sin preferencia (asignación automática)</option>
-            <option
-              v-for="g in selectedSlot.groomers_disponibles"
-              :key="g.id_trabajador"
-              :value="g.id_trabajador"
-            >
-              {{ g.nombre }}{{ g.especialidad ? ` · ${g.especialidad}` : '' }}
-            </option>
-          </select>
-          <small class="muted">
-            La asignación final queda sujeta a la disponibilidad al momento de confirmar.
-          </small>
+          <div v-if="selectedGroomerNombre" class="summary-row">
+            <span class="summary-label">Groomer:</span>
+            <span>{{ selectedGroomerNombre }} <span class="muted">(preferencia)</span></span>
+          </div>
         </div>
 
         <div class="form-actions">
@@ -332,6 +370,8 @@ onMounted(loadInit);
 .field--narrow { max-width: 320px; }
 
 .state  { padding: 1.5rem; text-align: center; color: var(--color-text-soft); }
+
+.groomer-filter-field { margin-bottom: 1rem; }
 
 .slots-grid {
   display: grid;
@@ -385,6 +425,5 @@ onMounted(loadInit);
 .summary-label { font-weight: 700; color: var(--color-text-soft); min-width: 80px; }
 .summary-duration { color: var(--color-text-soft); font-size: 0.88rem; }
 
-.groomer-pref-field { margin-top: 0.25rem; margin-bottom: 0.5rem; }
 .form-actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
 </style>

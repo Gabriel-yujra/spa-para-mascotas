@@ -15,6 +15,9 @@ const opinionModel = require('../models/opinionModel');
 const clienteModel = require('../models/clienteModel');
 
 const agendaService = require('./agendaService');
+const { calcularPrecioAjustado } = agendaService;
+const mascotaModel  = require('../models/mascotaModel');
+const servicioModel = require('../models/servicioModel');
 const { buildDate, addMinutes } = require('../utils/timeUtils');
 const {
   ESTADOS, ESTADOS_GROOMER_INMUTABLE,
@@ -123,6 +126,13 @@ async function crearCita({
     id_trabajador_preferido,
   });
 
+  // 2b. Precio calculado según tamaño real de la mascota
+  const [mascotaData, servicioData] = await Promise.all([
+    mascotaModel.findMascotaParaAgenda(id_mascota),
+    servicioModel.findServicioParaAgenda(id_servicio),
+  ]);
+  const precio_calculado = calcularPrecioAjustado(servicioData, mascotaData?.tamano);
+
   // 3. Transacción
   const dbClient = await db.getClient();
   try {
@@ -134,9 +144,10 @@ async function crearCita({
         id_mascota,
         id_servicio,
         fecha_cita,
-        estado_empleado: ESTADOS.PENDIENTE,
-        estado_cliente:  ESTADOS.PENDIENTE,
-        estado_global:   ESTADOS.PENDIENTE,
+        estado_empleado:  ESTADOS.PENDIENTE,
+        estado_cliente:   ESTADOS.PENDIENTE,
+        estado_global:    ESTADOS.PENDIENTE,
+        precio_calculado,
       },
       dbClient
     );
@@ -639,7 +650,8 @@ async function pagarCita({ id_cita, id_usuario_cliente, metodo_pago, opinion = n
   }
   if (cita.pagado) throw new ServiceError(409, 'Esta cita ya fue pagada');
 
-  const precio = parseFloat(cita.precio || 0);
+  // Usa el precio ajustado por tamaño si existe; si no, cae al precio base del servicio
+  const precio = parseFloat(cita.precio_calculado ?? cita.precio ?? 0);
   if (precio <= 0) throw new ServiceError(400, 'El servicio no tiene precio definido. Contacta a recepción.');
 
   const cajaActiva = await cajaModel.findCajaActiva();

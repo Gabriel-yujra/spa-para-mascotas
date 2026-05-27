@@ -15,12 +15,34 @@ const citaTrabajadorModel = require('../models/citaTrabajadorModel');
 const bloqueoAgendaModel = require('../models/bloqueoAgendaModel');
 
 const {
-  HORA_APERTURA, HORA_CIERRE, SLOT_GRAIN_MIN, esDiaLaboral,
+  HORA_APERTURA, HORA_CIERRE, SLOT_GRAIN_MIN, MAX_CITAS_DIARIAS_GROOMER, esDiaLaboral,
 } = require('../utils/agendaConfig');
 const {
   buildDate, addMinutes, hhmmToMinutes, minutesToHHMM,
   generarPuntosDeInicio, intervalosSolapan,
 } = require('../utils/timeUtils');
+
+/**
+ * Calcula el precio ajustado de un servicio según el tamaño real de la mascota,
+ * usando servicio.factor_tamano_raza (JSONB) y el tamano indicado.
+ *
+ * Devuelve null si el servicio no tiene precio configurado (precio = 0 o nulo).
+ * El resultado se redondea a 2 decimales.
+ */
+function calcularPrecioAjustado(servicio, tamano) {
+  const base = parseFloat(servicio.precio);
+  if (!Number.isFinite(base) || base <= 0) return null;
+
+  let factor = 1.0;
+  const tabla = servicio.factor_tamano_raza;
+  if (tabla && typeof tabla === 'object' && tamano) {
+    const k = String(tamano).toLowerCase();
+    if (typeof tabla[k] === 'number' && tabla[k] > 0) {
+      factor = tabla[k];
+    }
+  }
+  return Math.round(base * factor * 100) / 100;
+}
 
 /**
  * Calcula la duración real (en minutos) de un servicio aplicado a una mascota,
@@ -53,14 +75,32 @@ function calcularDuracionAjustada(servicio, mascota) {
   return Math.ceil(ajustada / 5) * 5;
 }
 
+// Rangos de turno en minutos desde medianoche.
+// "noche" no tiene rango definido → el groomer nunca es asignable con el horario actual.
+const TURNO_RANGOS = {
+  'mañana': { inicio: 9 * 60,  fin: 13 * 60 },  // 09:00–13:00
+  'tarde':  { inicio: 14 * 60, fin: 18 * 60 },  // 14:00–18:00
+};
+
+/**
+ * ¿El slot [slotStartMin, slotEndMin) cabe completamente dentro del turno del groomer?
+ * Si el turno no está en TURNO_RANGOS (ej. 'noche' o null) → false.
+ */
+function slotEnTurno(turno, slotStartMin, slotEndMin) {
+  const rango = TURNO_RANGOS[turno];
+  if (!rango) return false;
+  return slotStartMin >= rango.inicio && slotEndMin <= rango.fin;
+}
+
 /**
  * Evalúa la disponibilidad de un groomer en un rango de tiempo, dadas:
  *   - sus asignaciones del día (precargadas para evitar N queries)
  *   - el set de groomers bloqueados ese día
  *   - el servicio (permite_doble_booking y capacidad_simultanea del groomer)
+ *   - citasDiarias: citas activas que ya tiene ese groomer ese día
  *
  * Devuelve:
- *   { ocupadas, libre: boolean, capacidad: number }
+ *   { ocupadas, libre: boolean, capacidad: number, motivo? }
  */
 function evaluarGroomerEnSlot({
   groomer,
@@ -68,12 +108,27 @@ function evaluarGroomerEnSlot({
   asignacionesDelDia,
   groomersBloqueadosSet,
   servicio,
+  citasDiarias = 0,
 }) {
+  // 1. Bloqueo de agenda
   if (groomersBloqueadosSet.has(groomer.id_trabajador)) {
     return { ocupadas: 0, libre: false, capacidad: 0, motivo: 'bloqueado' };
   }
 
-  // Capacidad efectiva: si el servicio no permite doble booking, fuerza 1.
+  // 2. Turno: el slot completo debe caber dentro del turno del groomer.
+  //    buildDate() usa new Date(y,m,d,h,mi) → getHours()/getMinutes() son hora local ✓
+  const slotStartMin = rangoStart.getHours() * 60 + rangoStart.getMinutes();
+  const slotEndMin   = rangoEnd.getHours()   * 60 + rangoEnd.getMinutes();
+  if (!slotEnTurno(groomer.turno, slotStartMin, slotEndMin)) {
+    return { ocupadas: 0, libre: false, capacidad: 0, motivo: 'fuera_de_turno' };
+  }
+
+  // 3. Capacidad diaria máxima
+  if (citasDiarias >= MAX_CITAS_DIARIAS_GROOMER) {
+    return { ocupadas: 0, libre: false, capacidad: 0, motivo: 'maxima_carga_diaria' };
+  }
+
+  // 4. Capacidad simultánea: si el servicio no permite doble booking, fuerza 1.
   const capacidad = servicio.permite_doble_booking
     ? Math.max(1, parseInt(groomer.capacidad_simultanea, 10) || 1)
     : 1;
@@ -159,6 +214,22 @@ async function calcularDisponibilidad({ fecha, id_servicio, id_mascota, id_traba
 
   const groomersBloqueadosSet = new Set(groomersBloqueados);
 
+  // Pre-calcular citas activas por groomer en este día (de los datos ya cargados,
+  // sin consulta extra). asignaciones excluye 'cancelada'; también excluimos terminales.
+  const TERMINALES_CAP = new Set(['completada', 'cancelada', 'no_asistio']);
+  const citasActivasPorGroomer = {};
+  for (const asig of asignaciones) {
+    if (TERMINALES_CAP.has(asig.estado_global)) continue;
+    if (!citasActivasPorGroomer[asig.id_trabajador]) {
+      citasActivasPorGroomer[asig.id_trabajador] = new Set();
+    }
+    citasActivasPorGroomer[asig.id_trabajador].add(asig.id_cita);
+  }
+  const cuentaDiaria = {};
+  for (const [idTrab, citaSet] of Object.entries(citasActivasPorGroomer)) {
+    cuentaDiaria[idTrab] = citaSet.size;
+  }
+
   // ----- 5. Generar la rejilla de candidatos -----
   const puntosInicio = generarPuntosDeInicio(HORA_APERTURA, HORA_CIERRE, SLOT_GRAIN_MIN);
   const cierreMin = hhmmToMinutes(HORA_CIERRE);
@@ -194,6 +265,7 @@ async function calcularDisponibilidad({ fecha, id_servicio, id_mascota, id_traba
         asignacionesDelDia: asignaciones,
         groomersBloqueadosSet,
         servicio,
+        citasDiarias: cuentaDiaria[g.id_trabajador] || 0,
       });
       return {
         id_trabajador: g.id_trabajador,
@@ -209,14 +281,20 @@ async function calcularDisponibilidad({ fecha, id_servicio, id_mascota, id_traba
     const groomersDisponibles = groomersEvaluados.filter((g) => g.libre);
 
     // Clasificación del slot:
-    //   libre     → todos los groomers tienen cupo (ocupadas=0)
-    //   parcial   → al menos uno libre, alguno con ocupación o bloqueado
-    //   ocupado   → ninguno libre
+    //   ocupado → ningún groomer disponible para este slot
+    //   parcial → hay groomers disponibles, pero al menos uno ya tiene citas en este rango
+    //             (ocupadas > 0), lo que indica que realmente hay reservas en paralelo.
+    //             Groomers fuera de turno o bloqueados NO cuentan como "ocupados": su
+    //             ausencia del pool no es una reserva, simplemente no trabajan ese horario.
+    //   libre   → hay groomers disponibles y ninguno tiene reservas en este rango
     let estado;
-    if (groomersDisponibles.length === 0) estado = 'ocupado';
-    else if (groomersDisponibles.length === groomers.length &&
-             groomersDisponibles.every((g) => g.ocupadas === 0)) estado = 'libre';
-    else estado = 'parcial';
+    if (groomersDisponibles.length === 0) {
+      estado = 'ocupado';
+    } else if (groomersDisponibles.some((g) => g.ocupadas > 0)) {
+      estado = 'parcial';
+    } else {
+      estado = 'libre';
+    }
 
     slots.push({
       hora_inicio: horaInicio,
@@ -284,11 +362,9 @@ async function groomersDisponiblesEnSlot({ fecha, hora_inicio, id_servicio, id_m
 }
 
 module.exports = {
-  // funciones públicas
   calcularDisponibilidad,
   groomersDisponiblesEnSlot,
-  // exportamos los helpers internos por si el módulo de gestión de citas
-  // necesita reusar el cálculo de duración o la evaluación de slot:
   calcularDuracionAjustada,
+  calcularPrecioAjustado,
   evaluarGroomerEnSlot,
 };

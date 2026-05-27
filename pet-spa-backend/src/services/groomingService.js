@@ -5,6 +5,7 @@ const db = require('../config/db');
 
 const trabajadorModel        = require('../models/trabajadorModel');
 const citaModel              = require('../models/citaModel');
+const servicioModel          = require('../models/servicioModel');
 const groomingFichaModel     = require('../models/groomingFichaModel');
 const groomingChecklistModel = require('../models/groomingChecklistModel');
 const groomingInsumosModel   = require('../models/groomingInsumosModel');
@@ -13,6 +14,10 @@ const userModel              = require('../models/userModel');
 const { ESTADOS, canTransition }       = require('../utils/citaEstados');
 const { sendListoParaRecoger }         = require('../config/mail');
 const { enviarAlertaStockBajo }        = require('./inventarioAlertaService');
+const { calcularPrecioAjustado }       = require('./agendaService');
+
+// Order of tamano values — used to prevent downgrading
+const TAMANO_ORDEN = { pequeno: 1, mediano: 2, grande: 3, gigante: 4 };
 
 class ServiceError extends Error {
   constructor(status, message) { super(message); this.status = status; }
@@ -108,7 +113,12 @@ async function getOrCreateFichaForCita(idUsuario, idCita) {
     ? await mascotaModel.findMascotaById(cita.id_mascota)
     : null;
 
-  const ficha = existing || await groomingFichaModel.createFichaForCita(idCita, {});
+  // Pre-fill tamano from mascota when creating the ficha for the first time
+  const fichaInitData = existing ? {} : {
+    tamano_mascota:          mascota?.tamano || null,
+    tamano_original_mascota: mascota?.tamano || null,
+  };
+  const ficha = existing || await groomingFichaModel.createFichaForCita(idCita, fichaInitData);
 
   const [savedChecklist, allItems, fotos, insumos] = await Promise.all([
     groomingChecklistModel.getChecklistByFichaId(ficha.id_ficha),
@@ -124,10 +134,12 @@ async function getOrCreateFichaForCita(idUsuario, idCita) {
     fotos,
     insumos,
     cita: cita ? {
-      id_cita:       cita.id_cita,
-      estado_global: cita.estado_global,
-      fecha_cita:    cita.fecha_cita,
+      id_cita:         cita.id_cita,
+      estado_global:   cita.estado_global,
+      fecha_cita:      cita.fecha_cita,
       servicio_nombre: cita.servicio_nombre,
+      precio_final:    cita.precio_calculado != null ? Number(cita.precio_calculado) : (cita.precio != null ? Number(cita.precio) : null),
+      precio_ajustado: cita.precio_calculado != null,
     } : null,
   };
 }
@@ -148,6 +160,36 @@ async function updateFichaFromGroomer(idUsuario, idCita, data) {
     fecha_cierre,
     consumido_inventario,
   } = data || {};
+
+  // ── Tamano validation + price recalculation ───────────────────────────────
+  let nuevoPrecioCalculado;
+
+  if (tamano_mascota !== undefined && tamano_mascota) {
+    const fichaActual = await groomingFichaModel.getFichaByCitaId(idCita);
+    const tamanoOriginal = fichaActual?.tamano_original_mascota || null;
+
+    if (tamanoOriginal) {
+      const ordenActual   = TAMANO_ORDEN[tamano_mascota]  || 0;
+      const ordenOriginal = TAMANO_ORDEN[tamanoOriginal]  || 0;
+      if (ordenActual < ordenOriginal) {
+        throw new ServiceError(
+          422,
+          `No se puede reducir el tamaño a '${tamano_mascota}'. El tamaño original registrado es '${tamanoOriginal}'. Solo se permite confirmar un tamaño igual o mayor.`
+        );
+      }
+    }
+
+    // If tamano changed (or original not set), recalculate price
+    if (!tamanoOriginal || tamano_mascota !== fichaActual?.tamano_mascota) {
+      const citaParaPrecio = await citaModel.findCitaById(idCita);
+      if (citaParaPrecio?.id_servicio) {
+        const servicio = await servicioModel.findServicioParaAgenda(citaParaPrecio.id_servicio);
+        if (servicio) {
+          nuevoPrecioCalculado = calcularPrecioAjustado(servicio, tamano_mascota);
+        }
+      }
+    }
+  }
 
   const fichaFields = {
     ...(estado_ingreso       !== undefined && { estado_ingreso }),
@@ -173,7 +215,11 @@ async function updateFichaFromGroomer(idUsuario, idCita, data) {
     if (hasChecklist && ficha) {
       await groomingChecklistModel.upsertChecklistItems(ficha.id_ficha, checklist);
     }
-    return { ficha };
+    let citaActualizada = null;
+    if (nuevoPrecioCalculado !== undefined) {
+      citaActualizada = await citaModel.updateCitaCampos(idCita, { precio_calculado: nuevoPrecioCalculado });
+    }
+    return { ficha, ...(citaActualizada && { precio_calculado: nuevoPrecioCalculado }) };
   }
 
   // State change requested → validate, then run in a transaction
@@ -216,11 +262,12 @@ async function updateFichaFromGroomer(idUsuario, idCita, data) {
   try {
     await client.query('BEGIN');
 
-    const citaActualizada = await citaModel.updateCitaCampos(
-      idCita,
-      { estado_global: nuevo_estado_global, terminado_por_empleado: trabajador.id_usuario },
-      client
-    );
+    const camposCita = {
+      estado_global: nuevo_estado_global,
+      terminado_por_empleado: trabajador.id_usuario,
+      ...(nuevoPrecioCalculado !== undefined && { precio_calculado: nuevoPrecioCalculado }),
+    };
+    const citaActualizada = await citaModel.updateCitaCampos(idCita, camposCita, client);
 
     let ficha = await groomingFichaModel.getFichaByCitaId(idCita);
     const yaConsumo = ficha?.consumido_inventario === true;
@@ -324,6 +371,31 @@ async function saveInsumosForCita(idUsuario, idCita, items) {
 
   const insumos = await groomingInsumosModel.replaceInsumosForFicha(ficha.id_ficha, items);
   return { insumos };
+}
+
+// ── Foto upload ───────────────────────────────────────────────────────────────
+
+const TIPOS_FOTO_VALIDOS = new Set(['llegada', 'salida']);
+
+async function uploadFotoForCita(idUsuario, idCita, tipo, filePath) {
+  const trabajador = await resolverTrabajador(idUsuario);
+  await assertCitaDelGroomer(idCita, trabajador.id_trabajador);
+
+  if (!TIPOS_FOTO_VALIDOS.has(tipo)) {
+    throw new ServiceError(400, "tipo debe ser 'llegada' o 'salida'");
+  }
+  if (!filePath) {
+    throw new ServiceError(400, 'No se recibió ningún archivo');
+  }
+
+  let ficha = await groomingFichaModel.getFichaByCitaId(idCita);
+  if (!ficha) {
+    ficha = await groomingFichaModel.createFichaForCita(idCita, {});
+  }
+
+  const url_foto = `/uploads/grooming/${require('path').basename(filePath)}`;
+  const foto = await groomingFichaModel.createFoto(ficha.id_ficha, tipo, url_foto);
+  return { foto };
 }
 
 // ── Read-only views ───────────────────────────────────────────────────────────
@@ -430,6 +502,7 @@ module.exports = {
   updateFichaFromGroomer,
   getInsumosForCita,
   saveInsumosForCita,
+  uploadFotoForCita,
   getFichaForAdmin,
   getFichaForCliente,
 };

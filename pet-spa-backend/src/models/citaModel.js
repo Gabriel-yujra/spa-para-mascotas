@@ -15,18 +15,19 @@ async function createCita(
     estado_empleado = 'pendiente',
     estado_cliente = 'pendiente',
     estado_global = 'pendiente',
+    precio_calculado = null,
   },
   client = db
 ) {
   const { rows } = await client.query(
     `INSERT INTO citas (id_cliente, id_mascota, id_servicio, fecha_cita,
-                        estado_empleado, estado_cliente, estado_global)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+                        estado_empleado, estado_cliente, estado_global, precio_calculado)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      RETURNING id_cita, id_cliente, id_mascota, id_servicio, fecha_cita,
-               estado_empleado, estado_cliente, estado_global,
+               estado_empleado, estado_cliente, estado_global, precio_calculado,
                fecha_creacion, fecha_ultima_actualizacion`,
     [id_cliente, id_mascota, id_servicio, fecha_cita,
-     estado_empleado, estado_cliente, estado_global]
+     estado_empleado, estado_cliente, estado_global, precio_calculado]
   );
   return rows[0];
 }
@@ -41,7 +42,7 @@ async function findCitaById(id_cita) {
             c.motivo_cancelacion, c.cancelado_por,
             c.terminado_por_empleado, c.conforme_por_cliente,
             c.fecha_creacion, c.fecha_ultima_actualizacion,
-            c.pagado,
+            c.pagado, c.precio_calculado,
             m.nombre AS mascota_nombre, m.tamano AS mascota_tamano,
             s.nombre AS servicio_nombre, s.duracion_estimada_min,
             s.precio, s.permite_doble_booking,
@@ -71,7 +72,7 @@ async function listCitasByUsuarioCliente(id_usuario_cliente, { soloFuturas = fal
   const { rows } = await db.query(
     `SELECT c.id_cita, c.id_mascota, c.id_servicio, c.fecha_cita,
             c.estado_empleado, c.estado_cliente, c.estado_global,
-            c.pagado,
+            c.pagado, c.precio_calculado,
             m.nombre AS mascota_nombre,
             s.nombre AS servicio_nombre, s.duracion_estimada_min, s.precio,
             (SELECT MIN(ct.fecha_inicio) FROM cita_trabajadores ct WHERE ct.id_cita = c.id_cita) AS hora_inicio
@@ -241,7 +242,7 @@ async function updateCitaCampos(id_cita, fields, client = db) {
     'estado_empleado', 'estado_cliente', 'estado_global',
     'motivo_cancelacion', 'cancelado_por',
     'terminado_por_empleado', 'conforme_por_cliente',
-    'pagado',
+    'pagado', 'precio_calculado',
   ];
   const sets = [];
   const values = [];

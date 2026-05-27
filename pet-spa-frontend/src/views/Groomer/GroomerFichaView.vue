@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { groomingApi } from '@/api/groomingApi';
 import { tiendaApi }   from '@/api/tiendaApi';
@@ -49,6 +49,38 @@ const productosDisponibles = ref([]);
 const insumos = ref([]);      // [{ id_producto, unidades_usadas }]
 const savingInsumos = ref(false);
 const insumosMsg = ref('');
+
+// Fotos de servicio
+const uploadingFoto = ref(false);
+const fotoMsg = ref('');
+
+// Precio
+const precioFinal = ref(null);
+const precioAjustado = ref(false);
+
+// Tamano original (read-only, from ficha.tamano_original_mascota or mascota.tamano)
+const tamanoOriginal = computed(() =>
+  ficha.value?.tamano_original_mascota || mascota.value?.tamano || ''
+);
+
+const TAMANO_ORDEN = { pequeno: 1, mediano: 2, grande: 3, gigante: 4 };
+const TAMANO_OPTIONS = [
+  { value: 'pequeno', label: 'Pequeño' },
+  { value: 'mediano', label: 'Mediano' },
+  { value: 'grande',  label: 'Grande'  },
+  { value: 'gigante', label: 'Gigante' },
+];
+function tamanoDisabled(v) {
+  if (!tamanoOriginal.value) return false;
+  return (TAMANO_ORDEN[v] || 0) < (TAMANO_ORDEN[tamanoOriginal.value] || 0);
+}
+const tamanoAdviso = computed(() => {
+  if (!tamanoOriginal.value || !form.value.tamano_mascota) return '';
+  const ord = TAMANO_ORDEN[form.value.tamano_mascota] || 0;
+  const orig = TAMANO_ORDEN[tamanoOriginal.value] || 0;
+  if (ord > orig) return `⚠ Tamaño ajustado a "${form.value.tamano_mascota}" (original: "${tamanoOriginal.value}"). El precio se recalculará al guardar.`;
+  return '';
+});
 
 const ESTADO_OPTIONS = [
   { value: '',            label: '— Sin cambio de estado —' },
@@ -100,9 +132,14 @@ async function loadFicha() {
       form.value.estado_ingreso  = ficha.value.estado_ingreso  || '';
       form.value.observaciones   = ficha.value.observaciones   || '';
       form.value.recomendaciones = ficha.value.recomendaciones || '';
-      form.value.tamano_mascota  = ficha.value.tamano_mascota  || '';
+      // Pre-fill tamano from ficha (backend auto-fills from mascota on first open)
+      form.value.tamano_mascota  = ficha.value.tamano_mascota  || mascota.value?.tamano || '';
       form.value.temperatura     = ficha.value.temperatura     != null ? String(ficha.value.temperatura) : '';
       form.value.notas_internas  = ficha.value.notas_internas  || '';
+    }
+    if (data.cita) {
+      precioFinal.value    = data.cita.precio_final    ?? null;
+      precioAjustado.value = data.cita.precio_ajustado ?? false;
     }
   } catch (err) {
     if (err.response?.status === 403) {
@@ -140,8 +177,12 @@ async function guardar() {
     }
 
     const data = await groomingApi.updateFicha(idCita, payload);
-    if (data.ficha)  ficha.value    = data.ficha;
-    if (data.cita)   citaInfo.value = { ...citaInfo.value, estado_global: data.cita.estado_global };
+    if (data.ficha) ficha.value = data.ficha;
+    if (data.cita)  citaInfo.value = { ...citaInfo.value, estado_global: data.cita.estado_global };
+    if (data.precio_calculado !== undefined) {
+      precioFinal.value    = data.precio_calculado;
+      precioAjustado.value = true;
+    }
     successMsg.value = 'Ficha guardada correctamente.';
     form.value.nuevo_estado_global = '';
   } catch (err) {
@@ -191,6 +232,31 @@ async function guardarInsumos() {
     savingInsumos.value = false;
   }
 }
+
+function triggerFotoInput(tipo) {
+  const input = document.createElement('input');
+  input.type   = 'file';
+  input.accept = 'image/*';
+  input.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    uploadingFoto.value = true;
+    fotoMsg.value = '';
+    try {
+      const data = await groomingApi.uploadFoto(idCita, file, tipo);
+      fotos.value = [...fotos.value, data.foto];
+      fotoMsg.value = `Foto de ${tipo} subida correctamente.`;
+    } catch (err) {
+      fotoMsg.value = err.response?.data?.error || 'Error al subir la foto';
+    } finally {
+      uploadingFoto.value = false;
+    }
+  };
+  input.click();
+}
+
+const fotoLlegada = computed(() => fotos.value.find(f => f.tipo === 'llegada') || null);
+const fotoSalida  = computed(() => fotos.value.find(f => f.tipo === 'salida')  || null);
 
 const checklistWarning = computed(() => {
   if (form.value.nuevo_estado_global !== 'completada') return '';
@@ -346,14 +412,33 @@ onMounted(loadFicha);
           </div>
 
           <div class="field">
-            <label>Tamaño (verificado en consulta)</label>
+            <label>
+              Tamaño (verificado en consulta)
+              <span v-if="tamanoOriginal" class="field-hint">
+                — registrado: {{ tamanoLabel(tamanoOriginal) }}
+              </span>
+            </label>
             <select v-model="form.tamano_mascota">
               <option value="">— No especificado —</option>
-              <option value="pequeno">Pequeño</option>
-              <option value="mediano">Mediano</option>
-              <option value="grande">Grande</option>
-              <option value="gigante">Gigante</option>
+              <option
+                v-for="opt in TAMANO_OPTIONS"
+                :key="opt.value"
+                :value="opt.value"
+                :disabled="tamanoDisabled(opt.value)"
+              >
+                {{ opt.label }}{{ tamanoDisabled(opt.value) ? ' (menor al registrado)' : '' }}
+              </option>
             </select>
+            <small v-if="tamanoAdviso" class="tamano-adviso">{{ tamanoAdviso }}</small>
+          </div>
+
+          <!-- Precio estimado -->
+          <div v-if="precioFinal != null" class="field">
+            <label>Precio estimado del servicio</label>
+            <p class="precio-display">
+              Bs {{ Number(precioFinal).toFixed(2) }}
+              <span v-if="precioAjustado" class="precio-ajustado-badge">ajustado por tamaño</span>
+            </p>
           </div>
 
           <div class="field">
@@ -391,12 +476,43 @@ onMounted(loadFicha);
         </div>
       </AppCard>
 
-      <!-- ── Fotos ──────────────────────────────────────────────── -->
-      <AppCard v-if="fotos.length" title="Fotos">
-        <div class="fotos-grid">
-          <div v-for="foto in fotos" :key="foto.id_foto" class="foto-item">
-            <img :src="foto.url_foto" :alt="foto.tipo" class="foto-img" />
-            <span class="foto-tipo">{{ foto.tipo }}</span>
+      <!-- ── Fotos de servicio ─────────────────────────────────── -->
+      <AppCard title="Fotos del servicio">
+        <p v-if="fotoMsg" :class="fotoMsg.includes('Error') ? 'error' : 'success'">{{ fotoMsg }}</p>
+
+        <div class="fotos-servicio-grid">
+          <!-- Foto de llegada -->
+          <div class="foto-slot">
+            <p class="foto-slot-title">📥 Llegada</p>
+            <div v-if="fotoLlegada" class="foto-item">
+              <img :src="`${BACKEND_URL}${fotoLlegada.url_foto}`" alt="Llegada" class="foto-img" />
+            </div>
+            <div v-else class="foto-placeholder">Sin foto</div>
+            <PrimaryButton
+              variant="ghost"
+              size="sm"
+              :loading="uploadingFoto"
+              @click="triggerFotoInput('llegada')"
+            >
+              {{ fotoLlegada ? 'Cambiar foto llegada' : 'Subir foto llegada' }}
+            </PrimaryButton>
+          </div>
+
+          <!-- Foto de salida -->
+          <div class="foto-slot">
+            <p class="foto-slot-title">📤 Salida</p>
+            <div v-if="fotoSalida" class="foto-item">
+              <img :src="`${BACKEND_URL}${fotoSalida.url_foto}`" alt="Salida" class="foto-img" />
+            </div>
+            <div v-else class="foto-placeholder">Sin foto</div>
+            <PrimaryButton
+              variant="ghost"
+              size="sm"
+              :loading="uploadingFoto"
+              @click="triggerFotoInput('salida')"
+            >
+              {{ fotoSalida ? 'Cambiar foto salida' : 'Subir foto salida' }}
+            </PrimaryButton>
           </div>
         </div>
       </AppCard>
@@ -499,30 +615,72 @@ onMounted(loadFicha);
 .field--full { grid-column: 1 / -1; }
 .form-actions { margin-top: 1rem; }
 
-/* ── Fotos ── */
-.fotos-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.85rem;
+/* ── Fotos de servicio ── */
+.fotos-servicio-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.25rem;
 }
-.foto-item {
+.foto-slot {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
+  gap: 0.5rem;
 }
+.foto-slot-title {
+  font-weight: 700;
+  font-size: 0.92rem;
+  margin: 0;
+}
+.foto-placeholder {
+  width: 100%;
+  height: 130px;
+  background: var(--color-bg-soft);
+  border: 2px dashed var(--color-card-border);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-soft);
+  font-size: 0.85rem;
+}
+.foto-item { display: flex; flex-direction: column; }
 .foto-img {
-  width: 160px;
-  height: 120px;
+  width: 100%;
+  height: 130px;
   object-fit: cover;
   border-radius: 8px;
   border: 1px solid var(--color-card-border);
 }
-.foto-tipo {
+
+/* ── Tamano / precio ── */
+.field-hint { font-weight: 400; color: var(--color-text-soft); font-size: 0.82rem; }
+.tamano-adviso {
+  display: block;
+  margin-top: 0.35rem;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 6px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.82rem;
+}
+.precio-display {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+.precio-ajustado-badge {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #86efac;
+  border-radius: 999px;
+  padding: 0.15rem 0.65rem;
   font-size: 0.75rem;
   font-weight: 700;
-  color: var(--color-text-soft);
-  text-transform: capitalize;
 }
 
 .center { text-align: center; padding: 2rem; }

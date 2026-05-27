@@ -115,6 +115,33 @@ exports.getInsumos = async (req, res, next) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// POST /api/grooming/fichas/:idCita/fotos
+// Role: GROOMER — upload llegada/salida photo for own cita
+// Multipart: field "foto" (image file), field "tipo" ('llegada' | 'salida')
+// ─────────────────────────────────────────────────────────────────────────────
+exports.uploadFoto = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No se recibió ningún archivo (campo "foto")' });
+    }
+    const tipo = req.body?.tipo;
+    if (!tipo) {
+      return res.status(400).json({ error: 'Falta el campo "tipo" (llegada | salida)' });
+    }
+    const result = await groomingService.uploadFotoForCita(
+      req.user.id_usuario,
+      req.params.idCita,
+      tipo,
+      req.file.path
+    );
+    return res.status(201).json({ message: 'Foto subida', ...result });
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    next(err);
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // PUT /api/grooming/fichas/:idCita/insumos
 // Role: GROOMER — replace insumos list for own cita
 // Body: { items: [{ id_producto, unidades_usadas }] }

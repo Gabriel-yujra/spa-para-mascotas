@@ -134,12 +134,30 @@ onMounted(loadFicha);
       </AppCard>
 
       <!-- ── Fotos ──────────────────────────────────────────── -->
-      <AppCard v-if="fotos.length" title="Fotos del servicio">
-        <div class="fotos-grid">
-          <div v-for="foto in fotos" :key="foto.id_foto" class="foto-item">
-            <img :src="foto.url_foto" :alt="foto.tipo" class="foto-img" />
-            <span class="foto-tipo">{{ foto.tipo }}</span>
-          </div>
+      <AppCard v-if="fotos.length" title="Antes y después">
+        <div class="fotos-antes-despues">
+          <template v-for="tipo in ['llegada', 'salida']" :key="tipo">
+            <div
+              v-if="fotos.find(f => f.tipo === tipo)"
+              class="foto-ad-item"
+            >
+              <span class="foto-ad-label">
+                {{ tipo === 'llegada' ? '📥 Antes' : '📤 Después' }}
+              </span>
+              <img
+                :src="`${BACKEND_URL}${fotos.find(f => f.tipo === tipo).url_foto}`"
+                :alt="tipo"
+                class="foto-ad-img"
+              />
+            </div>
+          </template>
+          <!-- Any other photo types (in case there are extras) -->
+          <template v-for="foto in fotos.filter(f => f.tipo !== 'llegada' && f.tipo !== 'salida')" :key="foto.id_foto">
+            <div class="foto-ad-item">
+              <span class="foto-ad-label">{{ foto.tipo }}</span>
+              <img :src="`${BACKEND_URL}${foto.url_foto}`" :alt="foto.tipo" class="foto-ad-img" />
+            </div>
+          </template>
         </div>
       </AppCard>
 
@@ -205,10 +223,14 @@ onMounted(loadFicha);
 }
 
 /* ── Fotos ── */
-.fotos-grid { display: flex; flex-wrap: wrap; gap: 0.85rem; }
-.foto-item  { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; }
-.foto-img   { width: 160px; height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid var(--color-card-border); }
-.foto-tipo  { font-size: 0.75rem; font-weight: 700; color: var(--color-text-soft); text-transform: capitalize; }
+.fotos-antes-despues {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+.foto-ad-item { display: flex; flex-direction: column; gap: 0.4rem; }
+.foto-ad-label { font-size: 0.88rem; font-weight: 700; color: var(--color-text-soft); }
+.foto-ad-img   { width: 100%; height: 160px; object-fit: cover; border-radius: 10px; border: 1px solid var(--color-card-border); }
 
 .center { text-align: center; padding: 1.5rem; }
 </style>
