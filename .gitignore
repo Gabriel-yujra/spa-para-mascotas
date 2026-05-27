@@ -8,7 +8,10 @@ pnpm-lock.yaml
 dist
 .vite
 
-
+# Env files
+.env
+backend/.env
+frontend/.env
 
 # Logs
 *.log
