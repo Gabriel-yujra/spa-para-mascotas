@@ -20,6 +20,7 @@ const router = useRouter();
 const idCita      = route.params.idCita;
 const loading     = ref(false);
 const errorMsg    = ref('');
+const lightboxSrc = ref(null);
 const mascota     = ref(null);
 const resumen     = ref(null);
 const checklist   = ref([]);
@@ -147,7 +148,8 @@ onMounted(loadFicha);
               <img
                 :src="`${BACKEND_URL}${fotos.find(f => f.tipo === tipo).url_foto}`"
                 :alt="tipo"
-                class="foto-ad-img"
+                class="foto-ad-img foto-clickable"
+                @click="lightboxSrc = `${BACKEND_URL}${fotos.find(f => f.tipo === tipo).url_foto}`"
               />
             </div>
           </template>
@@ -155,7 +157,7 @@ onMounted(loadFicha);
           <template v-for="foto in fotos.filter(f => f.tipo !== 'llegada' && f.tipo !== 'salida')" :key="foto.id_foto">
             <div class="foto-ad-item">
               <span class="foto-ad-label">{{ foto.tipo }}</span>
-              <img :src="`${BACKEND_URL}${foto.url_foto}`" :alt="foto.tipo" class="foto-ad-img" />
+              <img :src="`${BACKEND_URL}${foto.url_foto}`" :alt="foto.tipo" class="foto-ad-img foto-clickable" @click="lightboxSrc = `${BACKEND_URL}${foto.url_foto}`" />
             </div>
           </template>
         </div>
@@ -163,6 +165,14 @@ onMounted(loadFicha);
 
     </template>
   </div>
+
+  <!-- ── Lightbox ─────────────────────────────────────────── -->
+  <Teleport to="body">
+    <div v-if="lightboxSrc" class="lightbox-overlay" @click="lightboxSrc = null">
+      <button class="lightbox-close" @click.stop="lightboxSrc = null">✕</button>
+      <img :src="lightboxSrc" class="lightbox-img" @click.stop />
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -231,6 +241,45 @@ onMounted(loadFicha);
 .foto-ad-item { display: flex; flex-direction: column; gap: 0.4rem; }
 .foto-ad-label { font-size: 0.88rem; font-weight: 700; color: var(--color-text-soft); }
 .foto-ad-img   { width: 100%; height: 160px; object-fit: cover; border-radius: 10px; border: 1px solid var(--color-card-border); }
+.foto-clickable { cursor: zoom-in; }
+
+/* ── Lightbox ── */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  cursor: zoom-out;
+}
+.lightbox-img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 10px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+  cursor: default;
+}
+.lightbox-close {
+  position: absolute;
+  top: 1rem;
+  right: 1.25rem;
+  background: rgba(255,255,255,0.15);
+  border: none;
+  color: #fff;
+  font-size: 1.25rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.lightbox-close:hover { background: rgba(255,255,255,0.3); }
 
 .center { text-align: center; padding: 1.5rem; }
 </style>

@@ -17,11 +17,12 @@ function iso30DaysAgo() {
 const desde = ref(iso30DaysAgo());
 const hasta = ref(isoToday());
 
-const ingresos       = ref([]);
-const topServicios   = ref([]);
-const porGroomer     = ref([]);
-const loading        = ref(false);
-const errorMsg       = ref('');
+const ingresos          = ref([]);
+const topServicios      = ref([]);
+const porGroomer        = ref([]);
+const consumoElevado    = ref([]);
+const loading           = ref(false);
+const errorMsg          = ref('');
 
 const totalPeriodo = () =>
   ingresos.value.reduce((s, r) => s + parseFloat(r.total || 0), 0).toFixed(2);
@@ -31,14 +32,16 @@ async function cargar() {
   errorMsg.value = '';
   try {
     const params = { desde: desde.value, hasta: hasta.value };
-    const [r1, r2, r3] = await Promise.all([
+    const [r1, r2, r3, r4] = await Promise.all([
       reportesApi.getIngresosDiarios(params),
       reportesApi.getTopServicios(params),
       reportesApi.getServiciosPorGroomer(params),
+      reportesApi.getConsumoElevado(params),
     ]);
-    ingresos.value     = r1.datos || [];
-    topServicios.value = r2.datos || [];
-    porGroomer.value   = r3.datos || [];
+    ingresos.value       = r1.datos || [];
+    topServicios.value   = r2.datos || [];
+    porGroomer.value     = r3.datos || [];
+    consumoElevado.value = r4.datos || [];
   } catch (err) {
     errorMsg.value = err.response?.data?.error || 'Error al cargar reportes';
   } finally {
@@ -150,6 +153,46 @@ onMounted(cargar);
           </table>
         </div>
       </AppCard>
+
+      <!-- Consumo elevado de insumos -->
+      <AppCard no-padding>
+        <template #header>
+          <div class="consumo-elevado-header">
+            <span class="consumo-elevado-title">⚠ Fichas con consumo elevado de insumos</span>
+            <span class="consumo-elevado-count" v-if="consumoElevado.length">{{ consumoElevado.length }}</span>
+          </div>
+        </template>
+        <div v-if="!consumoElevado.length" class="state">Sin registros de consumo elevado en el período.</div>
+        <div v-else class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Groomer</th>
+                <th>Servicio</th>
+                <th>Mascota</th>
+                <th>Tamaño</th>
+                <th class="center">Unidades usadas</th>
+                <th>Motivo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="r in consumoElevado" :key="`${r.fecha_cita}-${r.mascota_nombre}`" class="consumo-elevado-row">
+                <td>{{ formatFecha(r.fecha_cita) }}</td>
+                <td>{{ r.groomer_nombre || '—' }}</td>
+                <td>{{ r.servicio_nombre }}</td>
+                <td>{{ r.mascota_nombre }}</td>
+                <td>{{ r.tamano_verificado || r.tamano_mascota || '—' }}</td>
+                <td class="center amount-warn">{{ Number(r.total_unidades_usadas).toFixed(1) }}</td>
+                <td class="motivo-cell">
+                  <span v-if="r.motivo_consumo_elevado">{{ r.motivo_consumo_elevado }}</span>
+                  <span v-else class="muted badge badge-warning">Sin justificación</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </AppCard>
     </template>
   </div>
 </template>
@@ -177,4 +220,30 @@ onMounted(cargar);
 .table-wrapper { overflow-x: auto; }
 .state { padding: 2.5rem; text-align: center; color: var(--color-text-soft); }
 .amount { font-weight: 700; color: #16a34a; }
+.amount-warn { font-weight: 700; color: #c2410c; }
+
+/* ── Consumo elevado ── */
+.consumo-elevado-header { display: flex; align-items: center; gap: 0.5rem; }
+.consumo-elevado-title { font-weight: 800; color: #9a3412; font-size: 1.1rem; }
+.consumo-elevado-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fb923c;
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.75rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  margin-left: 0.5rem;
+}
+.consumo-elevado-row { background: #fff7ed; }
+.consumo-elevado-row:hover { background: #ffedd5; }
+.motivo-cell {
+  max-width: 280px;
+  font-size: 0.88rem;
+  white-space: normal;
+  word-break: break-word;
+}
 </style>

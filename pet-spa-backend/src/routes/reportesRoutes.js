@@ -50,4 +50,18 @@ module.exports = function reportesRoutes(app) {
       } catch (err) { next(err); }
     }
   );
+
+  // GET /api/reportes/consumo-elevado?desde=YYYY-MM-DD&hasta=YYYY-MM-DD
+  app.get(
+    '/api/reportes/consumo-elevado',
+    authRequired,
+    mustNotForcePasswordChange,
+    requireRole(ADMIN_ROLES),
+    async (req, res, next) => {
+      try {
+        const datos = await reportesService.getFichasConsumoElevado(req.query);
+        return res.status(200).json({ datos });
+      } catch (err) { next(err); }
+    }
+  );
 };

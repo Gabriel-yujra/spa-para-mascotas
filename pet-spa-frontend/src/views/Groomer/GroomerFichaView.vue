@@ -54,6 +54,16 @@ const insumosMsg = ref('');
 const uploadingFoto = ref(false);
 const fotoMsg = ref('');
 
+// Lightbox
+const lightboxSrc = ref(null);
+
+// Consumo elevado
+const consumoElevadoActivo   = ref(false);
+const motivoConsumoElevado   = ref('');
+const estandarPorProducto    = ref(1.0);   // max units per individual product for this service+size
+const maxTiposPorServicio    = ref(10);    // max distinct product types (optional limit)
+const productosExcedidos     = ref([]);    // [{ id_producto, nombre, usadas, maximo }]
+
 // Precio
 const precioFinal = ref(null);
 const precioAjustado = ref(false);
@@ -141,6 +151,29 @@ async function loadFicha() {
       precioFinal.value    = data.cita.precio_final    ?? null;
       precioAjustado.value = data.cita.precio_ajustado ?? false;
     }
+    estandarPorProducto.value = data.estandar_unidades_producto ?? 1.0;
+    maxTiposPorServicio.value  = data.max_tipos ?? 10;
+
+    // Restore consumo elevado state from saved ficha
+    if (ficha.value) {
+      consumoElevadoActivo.value = ficha.value.consumo_elevado === true && !ficha.value.motivo_consumo_elevado;
+      motivoConsumoElevado.value = ficha.value.motivo_consumo_elevado || '';
+      if (consumoElevadoActivo.value) {
+        // Recompute exceeded products from loaded data so groomer sees specifics on page open
+        const porProducto = {};
+        for (const i of insumos.value) {
+          const id = String(i.id_producto);
+          porProducto[id] = (porProducto[id] || 0) + parseFloat(i.unidades_usadas || 0);
+        }
+        productosExcedidos.value = Object.entries(porProducto)
+          .filter(([, u]) => u > estandarPorProducto.value + 0.5)
+          .map(([id_producto, usadas]) => {
+            const info = insumos.value.find(i => String(i.id_producto) === id_producto);
+            return { id_producto, nombre: info?.producto_nombre || `Producto #${id_producto}`,
+                     usadas: parseFloat(usadas.toFixed(1)), maximo: estandarPorProducto.value };
+          });
+      }
+    }
   } catch (err) {
     if (err.response?.status === 403) {
       errorMsg.value = 'Esta cita no está asignada a tu usuario.';
@@ -219,13 +252,28 @@ async function guardarInsumos() {
         const snapped = Math.max(0.5, Math.round(raw * 2) / 2);
         return { id_producto: i.id_producto, unidades_usadas: snapped };
       });
-    const data = await groomingApi.saveInsumos(idCita, items);
+    const data = await groomingApi.saveInsumos(idCita, items, motivoConsumoElevado.value || null);
     insumos.value = (data.insumos || []).map(i => ({
       id_producto: i.id_producto,
       unidades_usadas: i.unidades_usadas,
       producto_nombre: i.producto_nombre || '',
     }));
-    insumosMsg.value = 'Insumos guardados correctamente.';
+
+    // Handle per-product consumption check result
+    if (data.max_unidades_por_producto != null) estandarPorProducto.value = data.max_unidades_por_producto;
+    if (data.consumo_elevado) {
+      consumoElevadoActivo.value = data.necesita_motivo === true;
+      productosExcedidos.value   = data.productos_excedidos || [];
+      if (data.necesita_motivo) {
+        insumosMsg.value = '⚠ Consumo elevado detectado. Indica el motivo antes de cerrar la ficha.';
+      } else {
+        insumosMsg.value = 'Insumos guardados. Motivo de consumo elevado registrado.';
+      }
+    } else {
+      consumoElevadoActivo.value = false;
+      productosExcedidos.value   = [];
+      insumosMsg.value = 'Insumos guardados correctamente.';
+    }
   } catch (err) {
     insumosMsg.value = err.response?.data?.error || 'Error al guardar insumos';
   } finally {
@@ -263,6 +311,10 @@ const checklistWarning = computed(() => {
   const hasDone = checklist.value.some((i) => i.realizado);
   return hasDone ? '' : 'Debes marcar al menos 1 ítem del checklist antes de completar la ficha.';
 });
+
+const consumoElevadoBlock = computed(() =>
+  consumoElevadoActivo.value && !motivoConsumoElevado.value.trim()
+);
 
 onMounted(loadFicha);
 </script>
@@ -360,14 +412,37 @@ onMounted(loadFicha);
 
         <template v-else>
           <div v-if="insumos.length" class="insumos-table">
-            <div v-for="(ins, idx) in insumos" :key="idx" class="insumo-row">
+            <div
+              v-for="(ins, idx) in insumos"
+              :key="idx"
+              class="insumo-row"
+              :class="{ 'insumo-row--excedido': ins.id_producto && parseFloat(ins.unidades_usadas) > estandarPorProducto }"
+            >
               <select v-model="ins.id_producto" @change="onProductoChange(idx)" class="insumo-select">
                 <option value="">— Seleccionar producto —</option>
                 <option v-for="p in productosDisponibles" :key="p.id_producto" :value="p.id_producto">
                   {{ p.nombre }} (stock: {{ p.stock_unidades }})
                 </option>
               </select>
-              <input type="number" v-model.number="ins.unidades_usadas" min="0.5" step="0.5" class="insumo-qty" placeholder="0.5" @change="snapToHalf(idx)" />
+              <div class="insumo-qty-group">
+                <input
+                  type="number"
+                  v-model.number="ins.unidades_usadas"
+                  min="0.5"
+                  step="0.5"
+                  class="insumo-qty"
+                  :class="{ 'insumo-qty--warn': ins.id_producto && parseFloat(ins.unidades_usadas) > estandarPorProducto }"
+                  placeholder="0.5"
+                  @change="snapToHalf(idx)"
+                />
+                <span
+                  class="estandar-hint"
+                  :class="{ 'estandar-hint--warn': ins.id_producto && parseFloat(ins.unidades_usadas) > estandarPorProducto }"
+                  :title="ins.id_producto && parseFloat(ins.unidades_usadas) > estandarPorProducto ? 'Por encima del estándar, se pedirá explicación al guardar' : ''"
+                >
+                  máx {{ estandarPorProducto }}
+                </span>
+              </div>
               <button class="remove-btn" @click="removeInsumoRow(idx)">✕</button>
             </div>
           </div>
@@ -377,6 +452,41 @@ onMounted(loadFicha);
             <PrimaryButton :loading="savingInsumos" @click="guardarInsumos">Guardar insumos</PrimaryButton>
           </div>
         </template>
+
+        <!-- ── Alerta de consumo elevado ── -->
+        <div v-if="consumoElevadoActivo || ficha?.consumo_elevado" class="consumo-elevado-alert">
+          <p class="consumo-elevado-titulo">⚠ Consumo elevado detectado</p>
+          <ul v-if="productosExcedidos.length" class="consumo-productos-lista">
+            <li v-for="p in productosExcedidos" :key="p.id_producto">
+              <strong>{{ p.nombre }}</strong>: usaste <strong>{{ p.usadas }}</strong> unid. — estándar: {{ p.maximo }} unid.
+            </li>
+          </ul>
+          <p class="consumo-elevado-desc">
+            Uno o más productos superan el estándar para este servicio y tamaño de mascota.
+            Es necesario explicar el motivo antes de guardar o cerrar la ficha.
+          </p>
+          <div class="field">
+            <label>Motivo de consumo elevado <span class="required-mark">*</span></label>
+            <textarea
+              v-model="motivoConsumoElevado"
+              rows="3"
+              placeholder="Ej: Pelo extremadamente sucio con nudos, requirió doble cantidad de shampoo y acondicionador…"
+              class="motivo-textarea"
+            ></textarea>
+            <small v-if="ficha?.consumo_elevado && ficha?.motivo_consumo_elevado && !consumoElevadoActivo" class="motivo-guardado">
+              ✔ Motivo registrado. Puedes editarlo guardando insumos nuevamente.
+            </small>
+          </div>
+          <PrimaryButton
+            variant="ghost"
+            size="sm"
+            :loading="savingInsumos"
+            :disabled="!motivoConsumoElevado.trim()"
+            @click="guardarInsumos"
+          >
+            Guardar motivo
+          </PrimaryButton>
+        </div>
       </AppCard>
 
       <!-- ── Ficha técnica ──────────────────────────────────────── -->
@@ -470,9 +580,12 @@ onMounted(loadFicha);
         </div>
 
         <p v-if="checklistWarning" class="checklist-warning">{{ checklistWarning }}</p>
+        <p v-if="consumoElevadoBlock" class="checklist-warning">
+          ⚠ Hay consumo elevado de insumos sin justificar. Ve a la sección "Insumos usados" y completa el motivo antes de guardar.
+        </p>
 
         <div class="form-actions">
-          <PrimaryButton @click="guardar" :loading="saving" :disabled="!!checklistWarning">Guardar cambios</PrimaryButton>
+          <PrimaryButton @click="guardar" :loading="saving" :disabled="!!checklistWarning || consumoElevadoBlock">Guardar cambios</PrimaryButton>
         </div>
       </AppCard>
 
@@ -485,7 +598,7 @@ onMounted(loadFicha);
           <div class="foto-slot">
             <p class="foto-slot-title">📥 Llegada</p>
             <div v-if="fotoLlegada" class="foto-item">
-              <img :src="`${BACKEND_URL}${fotoLlegada.url_foto}`" alt="Llegada" class="foto-img" />
+              <img :src="`${BACKEND_URL}${fotoLlegada.url_foto}`" alt="Llegada" class="foto-img foto-clickable" @click="lightboxSrc = `${BACKEND_URL}${fotoLlegada.url_foto}`" />
             </div>
             <div v-else class="foto-placeholder">Sin foto</div>
             <PrimaryButton
@@ -502,7 +615,7 @@ onMounted(loadFicha);
           <div class="foto-slot">
             <p class="foto-slot-title">📤 Salida</p>
             <div v-if="fotoSalida" class="foto-item">
-              <img :src="`${BACKEND_URL}${fotoSalida.url_foto}`" alt="Salida" class="foto-img" />
+              <img :src="`${BACKEND_URL}${fotoSalida.url_foto}`" alt="Salida" class="foto-img foto-clickable" @click="lightboxSrc = `${BACKEND_URL}${fotoSalida.url_foto}`" />
             </div>
             <div v-else class="foto-placeholder">Sin foto</div>
             <PrimaryButton
@@ -519,6 +632,14 @@ onMounted(loadFicha);
 
     </template>
   </div>
+
+  <!-- ── Lightbox ─────────────────────────────────────────── -->
+  <Teleport to="body">
+    <div v-if="lightboxSrc" class="lightbox-overlay" @click="lightboxSrc = null" @keydown.esc="lightboxSrc = null" tabindex="-1">
+      <button class="lightbox-close" @click.stop="lightboxSrc = null">✕</button>
+      <img :src="lightboxSrc" class="lightbox-img" @click.stop />
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -651,6 +772,45 @@ onMounted(loadFicha);
   border-radius: 8px;
   border: 1px solid var(--color-card-border);
 }
+.foto-clickable { cursor: zoom-in; }
+
+/* ── Lightbox ── */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  cursor: zoom-out;
+}
+.lightbox-img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 10px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+  cursor: default;
+}
+.lightbox-close {
+  position: absolute;
+  top: 1rem;
+  right: 1.25rem;
+  background: rgba(255,255,255,0.15);
+  border: none;
+  color: #fff;
+  font-size: 1.25rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.lightbox-close:hover { background: rgba(255,255,255,0.3); }
 
 /* ── Tamano / precio ── */
 .field-hint { font-weight: 400; color: var(--color-text-soft); font-size: 0.82rem; }
@@ -693,9 +853,26 @@ onMounted(loadFicha);
 }
 .insumos-list-ro { margin: 0.5rem 0 0 1.25rem; }
 .insumos-table { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.75rem; }
-.insumo-row { display: flex; gap: 0.5rem; align-items: center; }
+.insumo-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.35rem 0.5rem;
+  border-radius: 7px;
+  transition: background 0.15s;
+}
+.insumo-row--excedido { background: #fff7ed; }
 .insumo-select { flex: 1; }
-.insumo-qty { width: 80px; }
+.insumo-qty-group { display: flex; flex-direction: column; align-items: center; gap: 0.15rem; }
+.insumo-qty { width: 72px; }
+.insumo-qty--warn { border-color: #fb923c; background: #fff7ed; }
+.estandar-hint {
+  font-size: 0.7rem;
+  color: var(--color-text-soft);
+  white-space: nowrap;
+  line-height: 1;
+}
+.estandar-hint--warn { color: #c2410c; font-weight: 700; }
 .remove-btn {
   background: none; border: 1px solid var(--color-danger);
   color: var(--color-danger); border-radius: 6px;
@@ -714,4 +891,58 @@ onMounted(loadFicha);
   font-size: 0.875rem;
   font-weight: 600;
 }
+
+/* ── Consumo elevado ── */
+.consumo-elevado-alert {
+  margin-top: 1rem;
+  padding: 1rem 1.1rem;
+  background: #fff7ed;
+  border: 1.5px solid #fb923c;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.consumo-elevado-titulo {
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: #9a3412;
+  margin: 0;
+}
+.consumo-productos-lista {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.9rem;
+  color: #7c2d12;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.consumo-productos-lista li { line-height: 1.4; }
+.consumo-elevado-desc {
+  font-size: 0.88rem;
+  color: #7c2d12;
+  margin: 0;
+}
+.motivo-textarea {
+  width: 100%;
+  border: 1.5px solid #fb923c;
+  border-radius: 7px;
+  padding: 0.55rem 0.75rem;
+  font-family: inherit;
+  font-size: 0.92rem;
+  resize: vertical;
+}
+.motivo-textarea:focus {
+  outline: none;
+  border-color: #ea580c;
+  box-shadow: 0 0 0 3px rgba(251,146,60,0.2);
+}
+.motivo-guardado {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.8rem;
+  color: #166534;
+}
+.required-mark { color: var(--color-danger); margin-left: 0.15rem; }
 </style>

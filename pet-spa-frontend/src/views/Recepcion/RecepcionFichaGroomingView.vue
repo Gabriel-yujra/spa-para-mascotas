@@ -4,6 +4,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { groomingApi } from '@/api/groomingApi';
 import AppCard from '@/components/AppCard.vue';
 
+const BACKEND_URL = (import.meta.env.VITE_API_URL ?? 'http://localhost:3000/api').replace(/\/api\/?$/, '');
+
 const route  = useRoute();
 const router = useRouter();
 
@@ -16,6 +18,7 @@ const checklist = ref([]);
 const fotos    = ref([]);
 const loading  = ref(false);
 const errorMsg = ref('');
+const lightboxSrc = ref(null);
 
 const ESTADO_LABELS = {
   pendiente:    'Pendiente',
@@ -180,11 +183,16 @@ onMounted(loadFicha);
         </AppCard>
 
         <!-- ── Fotos ────────────────────────────────────────── -->
-        <AppCard v-if="fotos.length" title="Fotos">
+        <AppCard v-if="fotos.length" title="Fotos del servicio">
           <div class="fotos-grid">
             <div v-for="foto in fotos" :key="foto.id_foto" class="foto-item">
-              <img :src="foto.url_foto" :alt="foto.tipo" class="foto-img" />
-              <span class="foto-tipo">{{ foto.tipo }}</span>
+              <img
+                :src="`${BACKEND_URL}${foto.url_foto}`"
+                :alt="foto.tipo"
+                class="foto-img foto-clickable"
+                @click="lightboxSrc = `${BACKEND_URL}${foto.url_foto}`"
+              />
+              <span class="foto-tipo">{{ foto.tipo === 'llegada' ? '📥 Llegada' : foto.tipo === 'salida' ? '📤 Salida' : foto.tipo }}</span>
             </div>
           </div>
         </AppCard>
@@ -192,6 +200,14 @@ onMounted(loadFicha);
       </template>
     </template>
   </div>
+
+  <!-- ── Lightbox ─────────────────────────────────────────── -->
+  <Teleport to="body">
+    <div v-if="lightboxSrc" class="lightbox-overlay" @click="lightboxSrc = null">
+      <button class="lightbox-close" @click.stop="lightboxSrc = null">✕</button>
+      <img :src="lightboxSrc" class="lightbox-img" @click.stop />
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -266,7 +282,46 @@ onMounted(loadFicha);
 .fotos-grid { display: flex; flex-wrap: wrap; gap: 0.85rem; }
 .foto-item  { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; }
 .foto-img   { width: 160px; height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid var(--color-card-border); }
-.foto-tipo  { font-size: 0.75rem; font-weight: 700; color: var(--color-text-soft); text-transform: capitalize; }
+.foto-tipo  { font-size: 0.75rem; font-weight: 700; color: var(--color-text-soft); }
+.foto-clickable { cursor: zoom-in; }
+
+/* ── Lightbox ── */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  cursor: zoom-out;
+}
+.lightbox-img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 10px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+  cursor: default;
+}
+.lightbox-close {
+  position: absolute;
+  top: 1rem;
+  right: 1.25rem;
+  background: rgba(255,255,255,0.15);
+  border: none;
+  color: #fff;
+  font-size: 1.25rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.lightbox-close:hover { background: rgba(255,255,255,0.3); }
 
 .center { text-align: center; padding: 1.5rem; }
 </style>

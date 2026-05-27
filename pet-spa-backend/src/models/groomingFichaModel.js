@@ -8,6 +8,7 @@ const CAMPOS_FICHA = `
   fg.estado_ingreso, fg.observaciones, fg.recomendaciones,
   fg.tamano_mascota, fg.tamano_original_mascota,
   fg.temperatura, fg.notas_internas, fg.consumido_inventario,
+  fg.consumo_elevado, fg.motivo_consumo_elevado,
   fg.fecha_creacion, fg.fecha_cierre
 `;
 
@@ -49,6 +50,7 @@ async function createFichaForCita(idCita, data = {}, client = db) {
      RETURNING id_ficha, id_cita, estado_ingreso, observaciones, recomendaciones,
                tamano_mascota, tamano_original_mascota,
                temperatura, notas_internas, consumido_inventario,
+               consumo_elevado, motivo_consumo_elevado,
                fecha_creacion, fecha_cierre`,
     [idCita, estado_ingreso, observaciones, recomendaciones,
      tamano_mascota, tamano_original_mascota, temperatura, notas_internas]
@@ -66,6 +68,7 @@ async function updateFicha(idFicha, fields, client = db) {
     'estado_ingreso', 'observaciones', 'recomendaciones',
     'tamano_mascota', 'tamano_original_mascota',
     'temperatura', 'notas_internas', 'fecha_cierre', 'consumido_inventario',
+    'consumo_elevado', 'motivo_consumo_elevado',
   ];
   const sets = [];
   const values = [];
@@ -85,6 +88,7 @@ async function updateFicha(idFicha, fields, client = db) {
       WHERE id_ficha = $${idx}
       RETURNING id_ficha, id_cita, estado_ingreso, observaciones, recomendaciones,
                 tamano_mascota, temperatura, notas_internas, consumido_inventario,
+                consumo_elevado, motivo_consumo_elevado,
                 fecha_creacion, fecha_cierre`,
     values
   );

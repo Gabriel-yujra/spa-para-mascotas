@@ -152,10 +152,12 @@ exports.saveInsumos = async (req, res, next) => {
     if (!Array.isArray(items)) {
       return res.status(400).json({ error: 'items debe ser un array' });
     }
+    const motivo = req.body?.motivo_consumo_elevado || null;
     const result = await groomingService.saveInsumosForCita(
       req.user.id_usuario,
       req.params.idCita,
-      items
+      items,
+      motivo
     );
     return res.status(200).json({ message: 'Insumos guardados', ...result });
   } catch (err) {

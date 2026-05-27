@@ -32,8 +32,10 @@ export const groomingApi = {
   },
 
   // PUT /api/grooming/fichas/:idCita/insumos  (GROOMER)
-  saveInsumos(idCita, items) {
-    return http.put(`/grooming/fichas/${idCita}/insumos`, { items }).then((r) => r.data);
+  saveInsumos(idCita, items, motivoConsumoElevado) {
+    const body = { items };
+    if (motivoConsumoElevado) body.motivo_consumo_elevado = motivoConsumoElevado;
+    return http.put(`/grooming/fichas/${idCita}/insumos`, body).then((r) => r.data);
   },
 
   // POST /api/grooming/fichas/:idCita/fotos  (GROOMER)

@@ -92,4 +92,42 @@ async function getServiciosPorGroomer({ desde, hasta } = {}) {
   return rows;
 }
 
-module.exports = { getReporteIngresosPorDia, getTopServiciosPorCantidad, getServiciosPorGroomer };
+/**
+ * Fichas with elevated supply consumption that have a recorded justification.
+ * Returns rows for analysis: date, groomer, service, pet, units used, standard, reason.
+ */
+async function getFichasConsumoElevado({ desde, hasta } = {}) {
+  const desdeVal = toDateStart(desde, new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString());
+  const hastaVal = toDateNextDay(hasta, new Date(Date.now() + 24 * 3600 * 1000).toISOString());
+
+  const { rows } = await db.query(
+    `SELECT
+       c.fecha_cita,
+       u.nombre                      AS groomer_nombre,
+       s.nombre                      AS servicio_nombre,
+       m.nombre                      AS mascota_nombre,
+       m.tamano                      AS tamano_mascota,
+       fg.tamano_mascota             AS tamano_verificado,
+       fg.motivo_consumo_elevado,
+       fg.fecha_cierre,
+       (SELECT COALESCE(SUM(fi.unidades_usadas), 0)
+          FROM fichas_grooming_insumos fi
+         WHERE fi.id_ficha = fg.id_ficha
+       )::numeric(10,2)              AS total_unidades_usadas
+     FROM fichas_grooming fg
+     JOIN citas c        ON c.id_cita        = fg.id_cita
+     JOIN servicios s    ON s.id_servicio    = c.id_servicio
+     JOIN mascotas m     ON m.id_mascota     = c.id_mascota
+     LEFT JOIN cita_trabajadores ct ON ct.id_cita = c.id_cita
+     LEFT JOIN trabajadores t       ON t.id_trabajador = ct.id_trabajador
+     LEFT JOIN usuarios u           ON u.id_usuario    = t.id_usuario
+    WHERE fg.consumo_elevado = TRUE
+      AND c.fecha_cita >= $1::date
+      AND c.fecha_cita <  $2::date
+    ORDER BY c.fecha_cita DESC, fg.fecha_cierre DESC`,
+    [desdeVal, hastaVal]
+  );
+  return rows;
+}
+
+module.exports = { getReporteIngresosPorDia, getTopServiciosPorCantidad, getServiciosPorGroomer, getFichasConsumoElevado };
