@@ -94,10 +94,106 @@ async function sendAccountLockedEmail(user, lockUntil) {
   });
 }
 
+/**
+ * Alerta de stock bajo enviada al correo de administración.
+ * productos: [{ nombre, categoria, stock_unidades, stock_minimo, unidad_presentacion }]
+ */
+async function sendAlertaStockBajo(productos) {
+  if (!productos || productos.length === 0) return;
+
+  function nivelAlerta(p) {
+    if (Number(p.stock_unidades) === 0)                          return { label: 'CRÍTICO',  color: '#dc2626' };
+    if (Number(p.stock_unidades) <= Number(p.stock_minimo) * 0.5) return { label: 'MUY BAJO', color: '#ea580c' };
+    return                                                              { label: 'BAJO',      color: '#ca8a04' };
+  }
+
+  const filas = productos.map((p) => {
+    const { label, color } = nivelAlerta(p);
+    const unidad = p.unidad_presentacion ? ` ${p.unidad_presentacion}` : '';
+    return `
+      <tr>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb">${p.nombre}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;color:#6b7280">${p.categoria || '—'}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:center;font-weight:700">${p.stock_unidades}${unidad}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:center;color:#6b7280">${p.stock_minimo}${unidad}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;text-align:center">
+          <span style="background:${color};color:#fff;padding:2px 8px;border-radius:999px;font-size:0.75rem;font-weight:700">${label}</span>
+        </td>
+      </tr>`;
+  }).join('');
+
+  const html = `
+    <h2 style="color:#991b1b">⚠️ Alerta de stock bajo — Pet Spa</h2>
+    <p>Los siguientes <b>${productos.length}</b> producto(s) tienen stock igual o por debajo del mínimo configurado:</p>
+    <table style="border-collapse:collapse;width:100%;max-width:680px;font-family:sans-serif;font-size:0.9rem">
+      <thead>
+        <tr style="background:#f3f4f6">
+          <th style="padding:8px 12px;text-align:left">Producto</th>
+          <th style="padding:8px 12px;text-align:left">Categoría</th>
+          <th style="padding:8px 12px;text-align:center">Stock actual</th>
+          <th style="padding:8px 12px;text-align:center">Mínimo</th>
+          <th style="padding:8px 12px;text-align:center">Nivel</th>
+        </tr>
+      </thead>
+      <tbody>${filas}</tbody>
+    </table>
+    <p style="margin-top:1.2em;color:#6b7280;font-size:0.85em">
+      Revisa el módulo de <b>Productos</b> en el panel de administración para reponer el inventario.
+    </p>
+  `;
+
+  const textoPlano = productos.map((p) => {
+    const { label } = nivelAlerta(p);
+    return `- ${p.nombre}: ${p.stock_unidades} / mínimo ${p.stock_minimo} [${label}]`;
+  }).join('\n');
+
+  const adminTo = process.env.ADMIN_ALERT_EMAIL || process.env.MAIL_FROM || 'admin@petspa.com';
+
+  return sendMail({
+    to: adminTo,
+    subject: `Alerta de stock bajo – Pet Spa (${productos.length} producto${productos.length > 1 ? 's' : ''})`,
+    html,
+    text: `Alerta de stock bajo en Pet Spa:\n\n${textoPlano}\n\nRevisa el panel de administración.`,
+  });
+}
+
+/**
+ * Notificación al cliente cuando su mascota está lista para recoger.
+ */
+async function sendListoParaRecoger({ clienteEmail, clienteNombre, mascotaNombre, servicioNombre, observaciones, recomendaciones }) {
+  const obs  = observaciones  || 'Sin observaciones adicionales.';
+  const rec  = recomendaciones || 'Sin recomendaciones adicionales.';
+  const html = `
+    <h2>🐾 ¡${mascotaNombre} está lista para recoger!</h2>
+    <p>Hola ${clienteNombre},</p>
+    <p>El servicio <b>${servicioNombre}</b> ha finalizado correctamente.</p>
+    <table cellpadding="8" style="border-collapse:collapse;width:100%;max-width:480px">
+      <tr>
+        <td style="font-weight:bold;color:#555;width:160px">Observaciones</td>
+        <td>${obs}</td>
+      </tr>
+      <tr style="background:#f9fafb">
+        <td style="font-weight:bold;color:#555">Recomendaciones</td>
+        <td>${rec}</td>
+      </tr>
+    </table>
+    <p style="margin-top:1.2em">Puedes pasar a recoger a <b>${mascotaNombre}</b> cuando gustes. 🐶</p>
+    <p style="color:#888;font-size:0.85em">Pet Spa — gracias por confiar en nosotros.</p>
+  `;
+  return sendMail({
+    to: clienteEmail,
+    subject: `Tu mascota ${mascotaNombre} está lista para recoger — Pet Spa`,
+    html,
+    text: `Hola ${clienteNombre}, el servicio ${servicioNombre} para ${mascotaNombre} ha finalizado.\nObservaciones: ${obs}\nRecomendaciones: ${rec}\nPuedes pasar a recoger a tu mascota.`,
+  });
+}
+
 module.exports = {
   transporter,
   sendMail,
   sendActivationEmail,
   sendEmployeeWelcomeEmail,
   sendAccountLockedEmail,
+  sendAlertaStockBajo,
+  sendListoParaRecoger,
 };

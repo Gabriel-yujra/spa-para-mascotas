@@ -13,12 +13,21 @@ import TwoFAVerifyView from '@/views/Auth/TwoFAVerifyView.vue';
 import EmployeesView from '@/views/Admin/EmployeesView.vue';
 import AdminSecurityView from '@/views/Admin/AdminSecurityView.vue';
 import AuditLogView from '@/views/Admin/AuditLogView.vue';
+import AdminServiciosView from '@/views/Admin/AdminServiciosView.vue';
+import AdminCajaView from '@/views/Admin/AdminCajaView.vue';
+import AdminPagosEmpleadosView from '@/views/Admin/AdminPagosEmpleadosView.vue';
+import AdminProductosView from '@/views/Admin/AdminProductosView.vue';
+import AdminOpinionesView from '@/views/Admin/AdminOpinionesView.vue';
+import AdminReportesView  from '@/views/Admin/AdminReportesView.vue';
+
+import ClienteTiendaView  from '@/views/Cliente/ClienteTiendaView.vue';
 
 import HomeView from '@/views/HomeView.vue';
 
-import MisMascotasView  from '@/views/Cliente/MisMascotasView.vue';
-import MisCitasView     from '@/views/Cliente/MisCitasView.vue';
-import SolicitarCitaView from '@/views/Cliente/SolicitarCitaView.vue';
+import MisMascotasView    from '@/views/Cliente/MisMascotasView.vue';
+import MisCitasView       from '@/views/Cliente/MisCitasView.vue';
+import SolicitarCitaView  from '@/views/Cliente/SolicitarCitaView.vue';
+import ClientePerfilView  from '@/views/Cliente/ClientePerfilView.vue';
 
 import RecepcionCitasView          from '@/views/Recepcion/RecepcionCitasView.vue';
 import RecepcionClientesView       from '@/views/Recepcion/RecepcionClientesView.vue';
@@ -27,8 +36,9 @@ import RecepcionClienteDetalleView from '@/views/Recepcion/RecepcionClienteDetal
 import GroomerAgendaView from '@/views/Groomer/GroomerAgendaView.vue';
 import GroomerFichaView  from '@/views/Groomer/GroomerFichaView.vue';
 
-import RecepcionFichaGroomingView from '@/views/Recepcion/RecepcionFichaGroomingView.vue';
-import ClienteFichaGroomingView   from '@/views/Cliente/ClienteFichaGroomingView.vue';
+import RecepcionFichaGroomingView    from '@/views/Recepcion/RecepcionFichaGroomingView.vue';
+import RecepcionBloqueosAgendaView  from '@/views/Recepcion/RecepcionBloqueosAgendaView.vue';
+import ClienteFichaGroomingView     from '@/views/Cliente/ClienteFichaGroomingView.vue';
 
 const routes = [
   // Públicas
@@ -42,6 +52,12 @@ const routes = [
   { path: '/change-password',  name: 'change-password', component: ChangePasswordView, meta: { requiresAuth: true } },
 
   // Cliente
+  {
+    path: '/mi-perfil',
+    name: 'mi-perfil',
+    component: ClientePerfilView,
+    meta: { requiresAuth: true, roles: [ROLES.CLIENTE] },
+  },
   {
     path: '/mis-citas/:idCita/ficha',
     name: 'cliente-ficha-grooming',
@@ -66,6 +82,12 @@ const routes = [
     component: SolicitarCitaView,
     meta: { requiresAuth: true, roles: [ROLES.CLIENTE] },
   },
+  {
+    path: '/tienda',
+    name: 'tienda',
+    component: ClienteTiendaView,
+    meta: { requiresAuth: true, roles: [ROLES.CLIENTE] },
+  },
 
   // Admin / Jefe
   {
@@ -87,6 +109,44 @@ const routes = [
     name: 'admin-seguridad',
     component: AdminSecurityView,
     meta: { requiresAuth: true, roles: [ROLES.ADMIN] },
+  },
+
+  // Admin / Jefe: módulos de gestión
+  {
+    path: '/admin/servicios',
+    name: 'admin-servicios',
+    component: AdminServiciosView,
+    meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.JEFE] },
+  },
+  {
+    path: '/admin/caja',
+    name: 'admin-caja',
+    component: AdminCajaView,
+    meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.JEFE, ROLES.RECEPCION] },
+  },
+  {
+    path: '/admin/pagos-empleados',
+    name: 'admin-pagos-empleados',
+    component: AdminPagosEmpleadosView,
+    meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.JEFE] },
+  },
+  {
+    path: '/admin/productos',
+    name: 'admin-productos',
+    component: AdminProductosView,
+    meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.JEFE] },
+  },
+  {
+    path: '/admin/opiniones',
+    name: 'admin-opiniones',
+    component: AdminOpinionesView,
+    meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.JEFE] },
+  },
+  {
+    path: '/admin/reportes',
+    name: 'admin-reportes',
+    component: AdminReportesView,
+    meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.JEFE] },
   },
 
   // Recepción / Admin / Jefe
@@ -114,6 +174,14 @@ const routes = [
     path: '/recepcion/citas/:idCita/ficha',
     name: 'recepcion-ficha-grooming',
     component: RecepcionFichaGroomingView,
+    meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.JEFE, ROLES.RECEPCION] },
+  },
+
+  // Recepción / Admin / Jefe: gestión de bloqueos de agenda
+  {
+    path: '/recepcion/bloqueos-agenda',
+    name: 'recepcion-bloqueos-agenda',
+    component: RecepcionBloqueosAgendaView,
     meta: { requiresAuth: true, roles: [ROLES.ADMIN, ROLES.JEFE, ROLES.RECEPCION] },
   },
 

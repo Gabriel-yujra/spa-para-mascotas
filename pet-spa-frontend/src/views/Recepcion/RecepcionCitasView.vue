@@ -1,7 +1,8 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { citaApi } from '@/api/citaApi';
+import { citaApi }   from '@/api/citaApi';
+import { agendaApi } from '@/api/agendaApi';
 import AppCard       from '@/components/AppCard.vue';
 import PrimaryButton from '@/components/PrimaryButton.vue';
 
@@ -28,9 +29,13 @@ const noShowId    = ref(null);
 const cancelId    = ref(null);
 const cancelMotivo = ref('');
 
-const reprogId    = ref(null);
-const reprogFecha = ref('');
-const reprogHora  = ref('');
+const reprogId      = ref(null);
+const reprogCita    = ref(null);   // cita completa, necesaria para id_mascota / id_servicio
+const reprogFecha   = ref('');
+const reprogHora    = ref('');
+const reprogGroomerId   = ref('');
+const groomersReprog    = ref([]);
+const loadingGroomers   = ref(false);
 
 const actionLoading = ref(false);
 
@@ -93,14 +98,42 @@ function canCancelar(estado)   { return ['pendiente', 'confirmada', 'reprogramad
 function canNoAsistio(estado)  { return estado === 'confirmada' || estado === 'reprogramada'; }
 
 function clearDialogs() {
-  confirmId.value  = null;
-  noShowId.value   = null;
-  cancelId.value   = null;
-  cancelMotivo.value = '';
-  reprogId.value   = null;
-  reprogFecha.value = '';
-  reprogHora.value  = '';
+  confirmId.value     = null;
+  noShowId.value      = null;
+  cancelId.value      = null;
+  cancelMotivo.value  = '';
+  reprogId.value      = null;
+  reprogCita.value    = null;
+  reprogFecha.value   = '';
+  reprogHora.value    = '';
+  reprogGroomerId.value = '';
+  groomersReprog.value  = [];
 }
+
+async function fetchGroomersReprog() {
+  if (!reprogFecha.value || !reprogHora.value || !reprogCita.value) return;
+  loadingGroomers.value = true;
+  groomersReprog.value  = [];
+  try {
+    const data = await agendaApi.getGroomersDisponibles({
+      fecha:       reprogFecha.value,
+      hora_inicio: reprogHora.value,
+      id_servicio: reprogCita.value.id_servicio,
+      id_mascota:  reprogCita.value.id_mascota,
+    });
+    groomersReprog.value = data.groomers_disponibles || [];
+  } catch {
+    groomersReprog.value = [];
+  } finally {
+    loadingGroomers.value = false;
+  }
+}
+
+watch([reprogFecha, reprogHora], ([f, h]) => {
+  reprogGroomerId.value = '';
+  groomersReprog.value  = [];
+  if (f && h && reprogCita.value) fetchGroomersReprog();
+});
 
 // ── API calls ──────────────────────────────────────────────────
 async function loadCitas() {
@@ -203,10 +236,12 @@ async function doReprogramar() {
   actionLoading.value = true;
   errorMsg.value = '';
   try {
-    await citaApi.reprogramarCita(reprogId.value, {
-      nueva_fecha:        reprogFecha.value,
-      nueva_hora_inicio:  reprogHora.value,
-    });
+    const payload = {
+      nueva_fecha:       reprogFecha.value,
+      nueva_hora_inicio: reprogHora.value,
+    };
+    if (reprogGroomerId.value) payload.nuevo_id_trabajador = reprogGroomerId.value;
+    await citaApi.reprogramarCita(reprogId.value, payload);
     successMsg.value = '✅ Cita reprogramada correctamente';
     await loadCitas();
   } catch (err) {
@@ -314,6 +349,32 @@ onMounted(loadCitas);
             <input type="time" v-model="reprogHora" />
           </div>
         </div>
+
+        <!-- Selector de groomer (se activa cuando fecha y hora están listos) -->
+        <div v-if="reprogFecha && reprogHora" class="field" style="margin-top:0.75rem">
+          <label>Groomer <span style="font-weight:400;color:var(--color-text-soft)">(opcional)</span></label>
+          <div v-if="loadingGroomers" style="font-size:0.85rem;color:var(--color-text-soft)">
+            Verificando disponibilidad…
+          </div>
+          <template v-else>
+            <select v-model="reprogGroomerId">
+              <option value="">— Mantener groomer actual —</option>
+              <option
+                v-for="g in groomersReprog"
+                :key="g.id_trabajador"
+                :value="g.id_trabajador"
+              >
+                {{ g.nombre }}{{ g.especialidad ? ` · ${g.especialidad}` : '' }}
+              </option>
+            </select>
+            <small
+              v-if="!groomersReprog.length"
+              style="color:var(--color-danger);font-size:0.82rem"
+            >
+              No hay groomers disponibles para ese horario. Elige otro.
+            </small>
+          </template>
+        </div>
       </div>
       <div class="action-btns">
         <PrimaryButton size="sm" :loading="actionLoading" @click="doReprogramar">
@@ -349,7 +410,11 @@ onMounted(loadCitas);
               <td>{{ formatFecha(c.fecha_cita) }}</td>
               <td>{{ c.mascota_nombre || '—' }}</td>
               <td>{{ c.cliente_nombre || '—' }}</td>
-              <td>{{ c.servicio_nombre || '—' }}</td>
+              <td>
+                {{ c.servicio_nombre || '—' }}
+                <br v-if="c.duracion_estimada_min" />
+                <small v-if="c.duracion_estimada_min" class="dur-muted">{{ c.duracion_estimada_min }} min</small>
+              </td>
               <td>{{ c.groomer_nombre || '—' }}</td>
               <td>
                 <span class="badge" :class="estadoBadgeClass(c.estado_global)">
@@ -368,7 +433,7 @@ onMounted(loadCitas);
                   <button
                     v-if="canReprogramar(c.estado_global)"
                     class="link-btn"
-                    @click="clearDialogs(); reprogId = c.id_cita"
+                    @click="clearDialogs(); reprogId = c.id_cita; reprogCita = c"
                   >
                     Reprogramar
                   </button>
@@ -448,6 +513,7 @@ onMounted(loadCitas);
 }
 
 .state { padding: 2.5rem; text-align: center; color: var(--color-text-soft); }
+.dur-muted { color: var(--color-text-soft); font-size: 0.78rem; }
 .table-wrapper { overflow-x: auto; }
 
 .actions-cell {

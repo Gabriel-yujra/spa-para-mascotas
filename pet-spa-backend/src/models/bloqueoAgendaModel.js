@@ -51,6 +51,42 @@ async function listBloqueosEnRango(desdeYMD, hastaYMD) {
 }
 
 /**
+ * Cuenta citas con estado activo (no terminal) en una fecha.
+ * Si id_trabajador es null  → cuenta sobre todos los groomers (bloqueo global).
+ * Si id_trabajador es UUID  → cuenta solo las citas asignadas a ese groomer.
+ *
+ * Estados activos: pendiente, confirmada, en_progreso, reprogramada.
+ * Estados terminales (excluidos): completada, cancelada, no_asistio.
+ */
+async function countCitasActivasEnFecha(fechaYMD, id_trabajador = null) {
+  const TERMINALES = ['completada', 'cancelada', 'no_asistio'];
+  let query, params;
+
+  if (id_trabajador) {
+    query = `
+      SELECT COUNT(DISTINCT c.id_cita)::int AS total
+        FROM citas c
+        JOIN cita_trabajadores ct ON ct.id_cita = c.id_cita
+       WHERE c.fecha_cita = $1
+         AND ct.id_trabajador = $2
+         AND c.estado_global != ALL($3::text[])
+    `;
+    params = [fechaYMD, id_trabajador, TERMINALES];
+  } else {
+    query = `
+      SELECT COUNT(*)::int AS total
+        FROM citas c
+       WHERE c.fecha_cita = $1
+         AND c.estado_global != ALL($2::text[])
+    `;
+    params = [fechaYMD, TERMINALES];
+  }
+
+  const { rows } = await db.query(query, params);
+  return rows[0].total;
+}
+
+/**
  * Crear un bloqueo (global si id_trabajador es null).
  */
 async function createBloqueo({ fecha, motivo, tipo, id_trabajador = null }) {
@@ -75,6 +111,7 @@ module.exports = {
   listBloqueosGlobales,
   listGroomersBloqueadosEnFecha,
   listBloqueosEnRango,
+  countCitasActivasEnFecha,
   createBloqueo,
   deleteBloqueo,
 };

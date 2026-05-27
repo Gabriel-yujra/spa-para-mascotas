@@ -351,3 +351,27 @@ exports.completar = async (req, res) => {
     return handleError(res, err, 'Error al completar cita');
   }
 };
+
+// ============================================================
+// POST /api/citas/:id/pagar-cliente   (cliente)
+// ============================================================
+exports.pagarComoCliente = async (req, res) => {
+  const { id } = req.params;
+  if (!isUuid(id)) return res.status(400).json({ error: 'id inválido' });
+
+  const { metodo_pago, opinion } = req.body || {};
+  if (!metodo_pago) return res.status(400).json({ error: 'metodo_pago es requerido' });
+
+  try {
+    const result = await citaService.pagarCita({
+      id_cita: id,
+      id_usuario_cliente: req.user.id_usuario,
+      metodo_pago,
+      opinion: opinion || null,
+      meta: getRequestMeta(req),
+    });
+    return res.status(200).json(result);
+  } catch (err) {
+    return handleError(res, err, 'Error al registrar pago');
+  }
+};

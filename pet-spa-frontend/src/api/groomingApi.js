@@ -25,4 +25,14 @@ export const groomingApi = {
   getFichaCliente(idCita) {
     return http.get(`/grooming/mis-citas/${idCita}/ficha`).then((r) => r.data);
   },
+
+  // GET /api/grooming/fichas/:idCita/insumos  (GROOMER)
+  getInsumos(idCita) {
+    return http.get(`/grooming/fichas/${idCita}/insumos`).then((r) => r.data);
+  },
+
+  // PUT /api/grooming/fichas/:idCita/insumos  (GROOMER)
+  saveInsumos(idCita, items) {
+    return http.put(`/grooming/fichas/${idCita}/insumos`, { items }).then((r) => r.data);
+  },
 };

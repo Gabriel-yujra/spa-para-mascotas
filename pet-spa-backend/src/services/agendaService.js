@@ -163,6 +163,12 @@ async function calcularDisponibilidad({ fecha, id_servicio, id_mascota, id_traba
   const puntosInicio = generarPuntosDeInicio(HORA_APERTURA, HORA_CIERRE, SLOT_GRAIN_MIN);
   const cierreMin = hhmmToMinutes(HORA_CIERRE);
 
+  // Hora actual en Bolivia (UTC-4) para filtrar slots pasados cuando fecha === hoy.
+  const _ahoraBolivia = new Date(Date.now() - 4 * 60 * 60 * 1000);
+  const _hoyBolivia   = _ahoraBolivia.toISOString().slice(0, 10);
+  const _ahoraMinutos = _ahoraBolivia.getUTCHours() * 60 + _ahoraBolivia.getUTCMinutes();
+  const esFechaHoy    = fecha === _hoyBolivia;
+
   const slots = [];
 
   for (const horaInicio of puntosInicio) {
@@ -172,6 +178,9 @@ async function calcularDisponibilidad({ fecha, id_servicio, id_mascota, id_traba
     // Regla "no permite agendar un servicio largo en un hueco corto":
     // si el slot no cabe antes del cierre, lo descartamos completamente.
     if (endMin > cierreMin) continue;
+
+    // Si la fecha es hoy, descartar slots cuyo inicio ya pasó.
+    if (esFechaHoy && startMin <= _ahoraMinutos) continue;
 
     const horaFin = minutesToHHMM(endMin);
     const rangoStart = buildDate(fecha, horaInicio);

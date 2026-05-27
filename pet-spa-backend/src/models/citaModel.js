@@ -41,9 +41,10 @@ async function findCitaById(id_cita) {
             c.motivo_cancelacion, c.cancelado_por,
             c.terminado_por_empleado, c.conforme_por_cliente,
             c.fecha_creacion, c.fecha_ultima_actualizacion,
+            c.pagado,
             m.nombre AS mascota_nombre, m.tamano AS mascota_tamano,
             s.nombre AS servicio_nombre, s.duracion_estimada_min,
-            s.permite_doble_booking,
+            s.precio, s.permite_doble_booking,
             cli.id_usuario AS id_usuario_cliente
        FROM citas c
        LEFT JOIN mascotas  m   ON m.id_mascota   = c.id_mascota
@@ -70,8 +71,9 @@ async function listCitasByUsuarioCliente(id_usuario_cliente, { soloFuturas = fal
   const { rows } = await db.query(
     `SELECT c.id_cita, c.id_mascota, c.id_servicio, c.fecha_cita,
             c.estado_empleado, c.estado_cliente, c.estado_global,
+            c.pagado,
             m.nombre AS mascota_nombre,
-            s.nombre AS servicio_nombre, s.duracion_estimada_min,
+            s.nombre AS servicio_nombre, s.duracion_estimada_min, s.precio,
             (SELECT MIN(ct.fecha_inicio) FROM cita_trabajadores ct WHERE ct.id_cita = c.id_cita) AS hora_inicio
        FROM citas c
        JOIN clientes  cli ON cli.id_cliente = c.id_cliente
@@ -239,6 +241,7 @@ async function updateCitaCampos(id_cita, fields, client = db) {
     'estado_empleado', 'estado_cliente', 'estado_global',
     'motivo_cancelacion', 'cancelado_por',
     'terminado_por_empleado', 'conforme_por_cliente',
+    'pagado',
   ];
   const sets = [];
   const values = [];
@@ -260,7 +263,7 @@ async function updateCitaCampos(id_cita, fields, client = db) {
             RETURNING id_cita, estado_empleado, estado_cliente, estado_global,
                       motivo_cancelacion, cancelado_por,
                       terminado_por_empleado, conforme_por_cliente,
-                      fecha_cita, fecha_ultima_actualizacion`;
+                      pagado, fecha_cita, fecha_ultima_actualizacion`;
   const { rows } = await client.query(sql, values);
   return rows[0] || null;
 }

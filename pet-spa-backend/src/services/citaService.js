@@ -10,6 +10,9 @@ const citaModel = require('../models/citaModel');
 const ctModel = require('../models/citaTrabajadorWriteModel');
 const movModel = require('../models/citaMovimientoModel');
 const auditLogModel = require('../models/auditLogModel');
+const cajaModel = require('../models/cajaModel');
+const opinionModel = require('../models/opinionModel');
+const clienteModel = require('../models/clienteModel');
 
 const agendaService = require('./agendaService');
 const { buildDate, addMinutes } = require('../utils/timeUtils');
@@ -618,6 +621,81 @@ async function completarCita({ id_cita, id_usuario_groomer, meta = {} }) {
   return await citaModel.findCitaById(id_cita);
 }
 
+// ============================================================
+// PAGAR CITA (cliente)
+// ============================================================
+const METODOS_PAGO_VALIDOS = ['EFECTIVO', 'QR', 'TRANSFERENCIA'];
+
+async function pagarCita({ id_cita, id_usuario_cliente, metodo_pago, opinion = null, meta = {} }) {
+  if (!METODOS_PAGO_VALIDOS.includes(metodo_pago)) {
+    throw new ServiceError(400, "metodo_pago debe ser 'EFECTIVO', 'QR' o 'TRANSFERENCIA'");
+  }
+
+  const cita = await citaModel.findCitaById(id_cita);
+  if (!cita) throw new ServiceError(404, 'Cita no encontrada');
+  if (cita.id_usuario_cliente !== id_usuario_cliente) throw new ServiceError(403, 'No es tu cita');
+  if (cita.estado_global !== 'completada') {
+    throw new ServiceError(400, 'Solo se pueden pagar citas completadas');
+  }
+  if (cita.pagado) throw new ServiceError(409, 'Esta cita ya fue pagada');
+
+  const precio = parseFloat(cita.precio || 0);
+  if (precio <= 0) throw new ServiceError(400, 'El servicio no tiene precio definido. Contacta a recepción.');
+
+  const cajaActiva = await cajaModel.findCajaActiva();
+  if (!cajaActiva) throw new ServiceError(409, 'No hay caja activa. Contacta a recepción para procesar el pago.');
+
+  const id_cliente = await clienteModel.findIdClienteByUsuario(id_usuario_cliente);
+  if (!id_cliente || cita.id_cliente !== id_cliente) throw new ServiceError(403, 'No es tu cita');
+
+  const dbClient = await db.getClient();
+  try {
+    await dbClient.query('BEGIN');
+
+    await cajaModel.createTransaccion({
+      id_caja: cajaActiva.id_caja,
+      tipo: 'INGRESO',
+      monto: precio,
+      descripcion: `Pago cita: ${cita.servicio_nombre} — ${cita.mascota_nombre}`,
+      id_usuario_solicita: id_usuario_cliente,
+      id_referencia: id_cita,
+      metodo_pago,
+    }, dbClient);
+
+    await citaModel.updateCitaCampos(id_cita, { pagado: true }, dbClient);
+
+    let opinion_result = null;
+    if (opinion && opinion.calificacion) {
+      const cal = parseInt(opinion.calificacion);
+      if (!isNaN(cal) && cal >= 1 && cal <= 5) {
+        const existente = await opinionModel.findByCita(id_cita);
+        if (!existente) {
+          opinion_result = await opinionModel.createOpinion(
+            { id_cita, id_cliente, calificacion: cal, comentario: opinion.comentario || null },
+            dbClient
+          );
+        }
+      }
+    }
+
+    await auditLogModel.logAction({
+      id_usuario: id_usuario_cliente,
+      accion: 'CITA_PAGADA',
+      detalle: JSON.stringify({ id_cita, monto: precio, metodo_pago, id_caja: cajaActiva.id_caja }),
+      ip_address: meta.ip || null,
+      user_agent: meta.user_agent || null,
+    }, dbClient);
+
+    await dbClient.query('COMMIT');
+    return { pagado: true, monto: precio, metodo_pago, opinion: opinion_result };
+  } catch (err) {
+    await dbClient.query('ROLLBACK').catch(() => {});
+    throw err;
+  } finally {
+    dbClient.release();
+  }
+}
+
 module.exports = {
   ServiceError,
   crearCita,
@@ -627,6 +705,7 @@ module.exports = {
   marcarNoAsistio,
   marcarEnProgreso,
   completarCita,
+  pagarCita,
   // re-exportados por conveniencia para controllers/listados
   listarMovimientos: movModel.listMovimientosDeCita,
   listarGroomersDeCita: ctModel.listGroomersDeCita,

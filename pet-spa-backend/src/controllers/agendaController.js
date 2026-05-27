@@ -4,6 +4,7 @@
 
 const agendaService = require('../services/agendaService');
 const bloqueoAgendaModel = require('../models/bloqueoAgendaModel');
+const trabajadorModel = require('../models/trabajadorModel');
 const auditLogModel = require('../models/auditLogModel');
 const { isUuid, isNonEmptyString } = require('../utils/validationUtils');
 
@@ -95,6 +96,18 @@ exports.createBloqueo = async (req, res) => {
   }
 
   try {
+    const citasActivas = await bloqueoAgendaModel.countCitasActivasEnFecha(
+      fecha,
+      id_trabajador || null
+    );
+    if (citasActivas > 0) {
+      const alcance = id_trabajador ? 'de este groomer' : 'programadas';
+      return res.status(409).json({
+        error: `No se puede bloquear este día: hay ${citasActivas} cita${citasActivas !== 1 ? 's' : ''} activa${citasActivas !== 1 ? 's' : ''} ${alcance}. Reprograme o cancele las citas primero desde la bandeja de citas.`,
+        citas_activas: citasActivas,
+      });
+    }
+
     const bloqueo = await bloqueoAgendaModel.createBloqueo({
       fecha,
       motivo: motivo || null,
@@ -135,6 +148,20 @@ exports.listBloqueos = async (req, res) => {
   } catch (err) {
     console.error('[listBloqueos]', err);
     return res.status(500).json({ error: 'Error al listar bloqueos', message: err.message });
+  }
+};
+
+// ============================================================
+// GET /api/agenda/groomers      (staff: admin, jefe, recepcion)
+// Lista todos los groomers activos para selección en formularios de bloqueos.
+// ============================================================
+exports.listGroomers = async (req, res) => {
+  try {
+    const groomers = await trabajadorModel.listGroomersActivos();
+    return res.status(200).json({ groomers });
+  } catch (err) {
+    console.error('[listGroomers]', err);
+    return res.status(500).json({ error: 'Error al listar groomers', message: err.message });
   }
 };
 

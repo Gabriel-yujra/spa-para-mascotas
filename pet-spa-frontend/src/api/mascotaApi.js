@@ -25,4 +25,21 @@ export const mascotaApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     }).then((r) => r.data);
   },
+
+  // ── Vacunas ───────────────────────────────────────────────
+  getVacunasCatalogo() {
+    return http.get('/mascotas/vacunas/catalogo').then((r) => r.data);
+  },
+
+  getVacunasMascota(idMascota) {
+    return http.get(`/mascotas/${idMascota}/vacunas`).then((r) => r.data);
+  },
+
+  createVacunaMascota(idMascota, payload) {
+    return http.post(`/mascotas/${idMascota}/vacunas`, payload).then((r) => r.data);
+  },
+
+  deleteVacunaMascota(idMascota, idMascotaVacuna) {
+    return http.delete(`/mascotas/${idMascota}/vacunas/${idMascotaVacuna}`).then((r) => r.data);
+  },
 };

@@ -96,3 +96,43 @@ exports.getFichaCliente = async (req, res, next) => {
     next(err);
   }
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/grooming/fichas/:idCita/insumos
+// Role: GROOMER — returns insumos list for own cita
+// ─────────────────────────────────────────────────────────────────────────────
+exports.getInsumos = async (req, res, next) => {
+  try {
+    const result = await groomingService.getInsumosForCita(
+      req.user.id_usuario,
+      req.params.idCita
+    );
+    return res.status(200).json(result);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    next(err);
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PUT /api/grooming/fichas/:idCita/insumos
+// Role: GROOMER — replace insumos list for own cita
+// Body: { items: [{ id_producto, unidades_usadas }] }
+// ─────────────────────────────────────────────────────────────────────────────
+exports.saveInsumos = async (req, res, next) => {
+  try {
+    const items = req.body?.items;
+    if (!Array.isArray(items)) {
+      return res.status(400).json({ error: 'items debe ser un array' });
+    }
+    const result = await groomingService.saveInsumosForCita(
+      req.user.id_usuario,
+      req.params.idCita,
+      items
+    );
+    return res.status(200).json({ message: 'Insumos guardados', ...result });
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    next(err);
+  }
+};
