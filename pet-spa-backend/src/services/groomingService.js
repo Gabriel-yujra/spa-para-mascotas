@@ -397,7 +397,9 @@ async function saveInsumosForCita(idUsuario, idCita, items, motivo_consumo_eleva
     throw new ServiceError(409, 'No se pueden modificar insumos: el inventario ya fue descontado al cerrar la ficha');
   }
 
-  const insumos = await groomingInsumosModel.replaceInsumosForFicha(ficha.id_ficha, items);
+  await groomingInsumosModel.replaceInsumosForFicha(ficha.id_ficha, items);
+  // Fetch with JOIN to productos so producto_nombre is available for checks and response
+  const insumos = await groomingInsumosModel.findInsumosByFicha(ficha.id_ficha);
 
   // ── Per-product consumption check ────────────────────────────────────────
   const cita   = await citaModel.findCitaById(idCita);
@@ -420,10 +422,9 @@ async function saveInsumosForCita(idUsuario, idCita, items, motivo_consumo_eleva
   const cantTipos      = Object.keys(consumoPorProducto).length;
   const tiposExcedidos = cantTipos > maxTipos;
 
-  const TOLERANCIA = 0.5;
   const productosExcedidos = [];
   for (const [id_producto, usadas] of Object.entries(consumoPorProducto)) {
-    if (usadas > maxUnidades + TOLERANCIA) {
+    if (usadas > maxUnidades) {
       const info = insumos.find((i) => String(i.id_producto) === id_producto);
       productosExcedidos.push({
         id_producto,
